@@ -3,7 +3,14 @@
   --background: #ffffff;
   --foreground: #171717;
 }
+body {
+  @apply bg-gray-100 text-gray-900;
+}
 
+/* Dark mode */
+.dark body {
+  @apply bg-gray-900 text-gray-100;
+}
 body {
   font-family: Poppins, Arial, sans-serif;
 }

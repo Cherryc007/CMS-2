@@ -31,6 +31,7 @@ const Navbar = () => {
       document.documentElement.classList.add("dark");
     }
     setDarkMode(!darkMode);
+    console.log(darkMode)
   };
 
   // Navigation links
@@ -87,23 +88,21 @@ const Navbar = () => {
 
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
-            {/* Notification Bell */}
-            <button className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200 transform hover:scale-110">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            </button>
+            {/* Sign In Button */}
+            <Link
+              href="/login"
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200"
+            >
+              Sign In
+            </Link>
+
+            {/* Sign Up Button */}
+            <Link
+              href="/signup"
+              className="px-4 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-all duration-200 transform hover:scale-105"
+            >
+              Sign Up
+            </Link>
 
             {/* User Profile */}
             <button className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200 transform hover:scale-110">
@@ -212,14 +211,30 @@ const Navbar = () => {
       >
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
           {navLinks.map((item) => (
-            <a
+            <Link
               key={item}
-              href="#"
+              href={getNavUrl(item)}
               className="block px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
             >
               {item}
-            </a>
+            </Link>
           ))}
+          
+          {/* Mobile Auth Buttons */}
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <Link
+              href="/login"
+              className="block px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="block px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200"
+            >
+              Sign Up
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

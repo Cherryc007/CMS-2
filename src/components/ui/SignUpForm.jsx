@@ -33,12 +33,12 @@ const SignupForm = () => {
   ];
 
   return (
-    <div className="flex items-center justify-center px-4 py-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="flex my-5 items-center justify-center rounded-2xl px-4 py-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="w-full max-w-md">
         {/* Form Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Join <span className="text-blue-600 dark:text-blue-400">Minimalista</span>
+            Join <span className="text-blue-600 dark:text-blue-400">Content Management System</span>
           </h1>
           <p className="mt-3 text-gray-600 dark:text-gray-400">
             Create your account and start your journey today.
