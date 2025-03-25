@@ -1,16 +1,24 @@
 "use client"
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { Github } from 'lucide-react';
+import { handleSignUpForm } from '@/actions';
+import { useRouter } from 'next/navigation';
 
 const SignupForm = () => {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    password: '',
     role: '',
+    password: '',
     agreeToTerms: false
   });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -19,10 +27,43 @@ const SignupForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Form submitted:', formData);
+    setError('');
+    setSuccess('');
+    setIsSubmitting(true);
+    
+    try {
+      const formDataToSubmit = new FormData();
+      formDataToSubmit.append('fullName', formData.fullName);
+      formDataToSubmit.append('email', formData.email);
+      formDataToSubmit.append('password', formData.password);
+      formDataToSubmit.append('role', formData.role);
+      
+      const result = await handleSignUpForm(formDataToSubmit);
+      
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setSuccess('Account created successfully! Redirecting to login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError('Something went wrong during registration. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleGoogleSignUp = () => {
+    signIn('google', { callbackUrl: '/' });
+  };
+
+  const handleGithubSignUp = () => {
+    signIn('github', { callbackUrl: '/' });
   };
 
   // Available roles for the dropdown
@@ -35,22 +76,58 @@ const SignupForm = () => {
   return (
     <div className="flex my-5 items-center justify-center rounded-2xl px-4 py-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="w-full max-w-md">
-        {/* Form Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Join <span className="text-blue-600 dark:text-blue-400">Content Management System</span>
-          </h1>
-          <p className="mt-3 text-gray-600 dark:text-gray-400">
-            Create your account and start your journey today.
-          </p>
-        </div>
-
         {/* Form Card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-all duration-300">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Create Account</h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Join us and start your journey</p>
           </div>
+          
+          {/* Social Login Buttons */}
+          <div className="space-y-3 mb-6">
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+            >
+              <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
+              </svg>
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={handleGithubSignUp}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+            >
+              <Github className="h-5 w-5 mr-2" />
+              Continue with GitHub
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-600 dark:text-green-400 text-sm">
+              {success}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {/* Full Name */}
@@ -67,6 +144,7 @@ const SignupForm = () => {
                 placeholder="John Doe"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -84,6 +162,7 @@ const SignupForm = () => {
                 placeholder="john@example.com"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -100,6 +179,7 @@ const SignupForm = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200 appearance-none"
                   required
+                  disabled={isSubmitting}
                 >
                   <option value="" disabled>Choose your role</option>
                   {availableRoles.map((role) => (
@@ -131,6 +211,7 @@ const SignupForm = () => {
                   placeholder="••••••••"
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                   required
+                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
@@ -163,6 +244,7 @@ const SignupForm = () => {
                     onChange={handleChange}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -179,21 +261,24 @@ const SignupForm = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
             >
-              Sign Up
-              <svg
-                className="ml-2 -mr-1 h-4 w-4"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              {isSubmitting ? "Creating Account..." : "Sign Up"}
+              {!isSubmitting && (
+                <svg
+                  className="ml-2 -mr-1 h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
             </button>
           </form>
 
@@ -201,7 +286,7 @@ const SignupForm = () => {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Already have an account?{' '}
-              <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+              <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                 Sign in
               </a>
             </p>

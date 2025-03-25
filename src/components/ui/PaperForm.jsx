@@ -1,157 +1,133 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import { handlePaperSubmission } from "@/actions";
 
-export default function PaperForm() {
-  const [formData, setFormData] = useState({
-    title: "",
-    abstract: "",
-    fileUrl: "",
-    author: "",
-    conferenceId: "",
-  });
+// Predefined conferences data
+const conferences = [
+  "AI & ML Conference 2025",
+  "International Web Summit",
+  "Data Science Global 2025",
+  "Blockchain Innovations 2025",
+  "IoT & Smart Systems Expo",
+];
 
-  const [file, setFile] = useState(null);
-
-  // 🎯 Predefined Conferences
-  const conferences = [
-    { id: "661d5f1e2b48e12345678901", name: "AI & ML Conference 2025" },
-    { id: "661d5f2f3b92a98765432101", name: "International Web Summit" },
-    { id: "661d5f3a1cde456789012345", name: "Data Science Global 2025" },
-    { id: "661d5f4b9abc567890123456", name: "Blockchain Innovations 2025" },
-    { id: "661d5f5c8def678901234567", name: "IoT & Smart Systems Expo" },
-  ];
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFileChange = (e) => {
-    const uploadedFile = e.target.files[0];
-    if (uploadedFile) {
-      setFile(uploadedFile);
-      setFormData({ ...formData, fileUrl: URL.createObjectURL(uploadedFile) });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Paper submitted:", formData);
-    alert("Paper Submitted Successfully!");
-  };
+export default function PaperForm({ onClose }) {
 
   return (
-    <motion.div
-      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
-    >
-      <motion.div
-        className="bg-white shadow-lg rounded-xl p-8 w-full max-w-lg"
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">
-          Submit a Paper
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Submit New Paper
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Paper Title
-            </label>
-            <motion.input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter paper title"
-              whileFocus={{ scale: 1.01 }}
-              transition={{ duration: 0.1 }}
-            />
-          </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+      <form action = {handlePaperSubmission} className="space-y-6">
+        <div>
+          <label
+            htmlFor="conferenceId"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Select Conference
+          </label>
+          <select
+            id="conferenceId"
+            name="conferenceId"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            required
+          >
+            <option value="">Select a conference</option>
+            {conferences.map((conference) => (
+              <option key={conference} value={conference}>
+                {conference}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* Abstract */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Abstract
-            </label>
-            <motion.textarea
-              name="abstract"
-              rows="4"
-              value={formData.abstract}
-              onChange={handleChange}
-              required
-              className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter abstract"
-              whileFocus={{ scale: 1.01 }}
-              transition={{ duration: 0.1 }}
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Paper Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder = "Enter Paper Title"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            required
+          />
+        </div>
 
-          {/* Conference ID Dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Select Conference
-            </label>
-            <motion.select
-              name="conferenceId"
-              value={formData.conferenceId}
-              onChange={handleChange}
-              required
-              className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              whileFocus={{ scale: 1.01 }}
-              transition={{ duration: 0.1 }}
-            >
-              <option value="">Select a Conference</option>
-              {conferences.map((conf) => (
-                <option key={conf.id} value={conf.id}>
-                  {conf.name}
-                </option>
-              ))}
-            </motion.select>
-          </div>
+        <div>
+          <label
+            htmlFor="abstract"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Abstract
+          </label>
+          <textarea
+            id="abstract"
+            name="abstract"
+            placeholder = "Enter Abstract"
+            rows={4}
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            required
+          />
+        </div>
 
-          {/* File Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Upload Paper (PDF/DOC)
-            </label>
-            <motion.div
-              className="mt-1 relative flex items-center justify-center p-3 w-full border border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-all"
-              whileHover={{ scale: 1.01 }}
-              transition={{ duration: 0.1 }}
-            >
-              <input
-                type="file"
-                accept=".pdf, .doc, .docx"
-                onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-              />
-              {file ? (
-                <span className="text-gray-600">{file.name}</span>
-              ) : (
-                <span className="text-gray-500">Click to upload your paper</span>
-              )}
-            </motion.div>
-          </div>
+        <div>
+          <label
+            htmlFor="file"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Paper File (PDF)
+          </label>
+          <input
+            type="file"
+            id="file"
+            name="file"
+            accept=".pdf"
+            className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-md file:border-0
+              file:text-sm file:font-semibold
+              file:bg-blue-50 file:text-blue-700
+              hover:file:bg-blue-100
+              dark:file:bg-blue-900 dark:file:text-blue-100"
+            required
+          />
+        </div>
 
-          {/* Submit Button */}
-          <motion.button
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="text-gray-700 dark:text-gray-300"
+          >
+            Cancel
+          </Button>
+          <Button
             type="submit"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.1 }}
-            className="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-200"
+            className="bg-blue-500 hover:bg-blue-600 text-white"
           >
             Submit Paper
-          </motion.button>
-        </form>
-      </motion.div>
-    </motion.div>
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
