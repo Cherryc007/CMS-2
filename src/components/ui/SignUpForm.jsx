@@ -3,22 +3,8 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Github } from 'lucide-react';
 import { handleSignUpForm } from '@/actions';
-import { useRouter } from 'next/navigation';
-
 const SignupForm = () => {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    role: '',
-    password: '',
-    agreeToTerms: false
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -27,36 +13,6 @@ const SignupForm = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setIsSubmitting(true);
-    
-    try {
-      const formDataToSubmit = new FormData();
-      formDataToSubmit.append('fullName', formData.fullName);
-      formDataToSubmit.append('email', formData.email);
-      formDataToSubmit.append('password', formData.password);
-      formDataToSubmit.append('role', formData.role);
-      
-      const result = await handleSignUpForm(formDataToSubmit);
-      
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setSuccess('Account created successfully! Redirecting to login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      setError('Something went wrong during registration. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   
   const handleGoogleSignUp = () => {
     signIn('google', { callbackUrl: '/' });
@@ -76,6 +32,8 @@ const SignupForm = () => {
   return (
     <div className="flex my-5 items-center justify-center rounded-2xl px-4 py-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="w-full max-w-md">
+      
+
         {/* Form Card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-all duration-300">
           <div className="mb-6">
@@ -117,19 +75,7 @@ const SignupForm = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-600 dark:text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-600 dark:text-green-400 text-sm">
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
+          <form action = {handleSignUpForm}>
             {/* Full Name */}
             <div className="mb-5">
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -139,12 +85,9 @@ const SignupForm = () => {
                 type="text"
                 id="fullName"
                 name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
                 placeholder="John Doe"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
-                disabled={isSubmitting}
               />
             </div>
 
@@ -157,12 +100,9 @@ const SignupForm = () => {
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
-                onChange={handleChange}
                 placeholder="john@example.com"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
-                disabled={isSubmitting}
               />
             </div>
 
@@ -175,11 +115,8 @@ const SignupForm = () => {
                 <select
                   id="role"
                   name="role"
-                  value={formData.role}
-                  onChange={handleChange}
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200 appearance-none"
                   required
-                  disabled={isSubmitting}
                 >
                   <option value="" disabled>Choose your role</option>
                   {availableRoles.map((role) => (
@@ -206,12 +143,9 @@ const SignupForm = () => {
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
-                  value={formData.password}
-                  onChange={handleChange}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                   required
-                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
@@ -240,11 +174,8 @@ const SignupForm = () => {
                     id="terms"
                     name="agreeToTerms"
                     type="checkbox"
-                    checked={formData.agreeToTerms}
-                    onChange={handleChange}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                     required
-                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -261,24 +192,21 @@ const SignupForm = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
+              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
             >
-              {isSubmitting ? "Creating Account..." : "Sign Up"}
-              {!isSubmitting && (
-                <svg
-                  className="ml-2 -mr-1 h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
+              Sign Up
+              <svg
+                className="ml-2 -mr-1 h-4 w-4"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </button>
           </form>
 
