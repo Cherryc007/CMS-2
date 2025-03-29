@@ -3,6 +3,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Github } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const LoginForm = () => {
   const router = useRouter();
@@ -16,12 +17,21 @@ const LoginForm = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      setError("Email and password are required");
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await signIn("credentials", {
@@ -32,23 +42,40 @@ const LoginForm = () => {
 
       if (result?.error) {
         setError(result.error);
+        toast.error(result.error || "Login failed");
       } else {
+        toast.success("Login successful!");
         router.push("/");
         router.refresh();
       }
     } catch (error) {
-      setError("An error occurred during sign in");
+      console.error("Sign in error:", error);
+      const errorMessage = "An error occurred during sign in";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
+    setLoading(true);
+    signIn("google", { callbackUrl: "/" })
+      .catch(error => {
+        console.error("Google sign in error:", error);
+        toast.error("Failed to sign in with Google");
+        setLoading(false);
+      });
   };
 
   const handleGithubSignIn = () => {
-    signIn("github", { callbackUrl: "/" });
+    setLoading(true);
+    signIn("github", { callbackUrl: "/" })
+      .catch(error => {
+        console.error("GitHub sign in error:", error);
+        toast.error("Failed to sign in with GitHub");
+        setLoading(false);
+      });
   };
 
   return (

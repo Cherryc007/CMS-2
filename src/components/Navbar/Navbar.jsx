@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, User } from "lucide-react";
-
+import { toast } from "sonner";
 const Navbar = () => {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
@@ -30,7 +30,8 @@ const Navbar = () => {
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userMenuOpen) {
+      // Don't close the menu if clicking on the sign out button or inside the menu
+      if (userMenuOpen && !event.target.closest('[data-user-menu]')) {
         setUserMenuOpen(false);
       }
     };
@@ -44,27 +45,76 @@ const Navbar = () => {
   const toggleDarkMode = () => {
     if (darkMode) {
       document.documentElement.classList.remove("dark");
+      toast("Light mode activated")
     } else {
       document.documentElement.classList.add("dark");
+      toast("Dark mode activated")
     }
     setDarkMode(!darkMode);
   };
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+  const handleSignOut = async () => {
+    console.log('Signing out...');
+    
+    try {
+      toast.info('Signing out...');
+      
+      await signOut({ 
+        redirect: false,
+        callbackUrl: '/'
+      });
+      
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
   };
 
-  // Navigation links
-  const navLinks = ["Home", "Admin Dashboard", "conference-creation", "Author Dashboard"];
+  // Navigation links based on authentication status and role
+  const getNavLinks = () => {
+    if (status === "authenticated") {
+      // User is logged in - show role-specific links
+      const commonLinks = ["Home"];
+      const roleSpecificDashboard = ["Dashboard"]; // Single dashboard link
+      
+      return [...commonLinks, ...roleSpecificDashboard];
+    } else {
+      // User is not logged in - show public links
+      return [ "Services", "About"];
+    }
+  };
 
-  // Custom URL mappings for special routes
+  // Custom URL mappings for routes based on role
   const getNavUrl = (item) => {
-    if (item === "Admin Dashboard") return "/admin-dashboard";
-    if (item === "Author Dashboard") return "/author-dashboard";
+    if (item === "Dashboard") {
+      // Redirect to role-specific dashboard
+      const role = session?.user?.role || "user";
+      
+      switch (role) {
+        case "admin":
+          return "/admin-dashboard";
+        case "author":
+          return "/author-dashboard";
+        default:
+          return "/user-dashboard";
+      }
+    }
+    
+    // Standard routes
+    if (item === "Services") return "/services";
+    if (item === "About") return "/about";
     return `/${item.toLowerCase()}`;
   };
 
- 
+  // Get the navigation links based on user status
+  const navLinks = getNavLinks();
+
+  console.log('Session:', {
+    user: session?.user,
+    role: session?.user?.role,
+    status
+  });
 
   return (
     <nav
@@ -124,13 +174,16 @@ const Navbar = () => {
                   </button>
                   
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
+                    <div data-user-menu className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
                       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{session.user.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user.email}</p>
                       </div>
                       <button
-                        onClick={handleSignOut}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSignOut();
+                        }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
@@ -262,7 +315,10 @@ const Navbar = () => {
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
             {status === "authenticated" ? (
               <button
-                onClick={handleSignOut}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSignOut();
+                }}
                 className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4 mr-2" />

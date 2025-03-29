@@ -2,30 +2,113 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Github } from 'lucide-react';
-import { handleSignUpForm } from '@/actions';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+
 const SignupForm = () => {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    role: '',
+    agreeToTerms: false
+  });
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    // Basic validation
+    if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
+      setError('All fields are required');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/signUp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // Registration successful
+      console.log('Registration successful:', data);
+      toast.success('Registration successful! Redirecting to login...');
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errorMessage = error.message || 'An error occurred during registration';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleGoogleSignUp = () => {
-    signIn('google', { callbackUrl: '/' });
+    setLoading(true);
+    signIn('google', { callbackUrl: '/' })
+      .catch(error => {
+        console.error('Google sign up error:', error);
+        toast.error('Failed to sign up with Google');
+        setLoading(false);
+      });
   };
 
   const handleGithubSignUp = () => {
-    signIn('github', { callbackUrl: '/' });
+    setLoading(true);
+    signIn('github', { callbackUrl: '/' })
+      .catch(error => {
+        console.error('GitHub sign up error:', error);
+        toast.error('Failed to sign up with GitHub');
+        setLoading(false);
+      });
   };
 
   // Available roles for the dropdown
   const availableRoles = [
     { id: 'author', name: 'Author' },
-    { id: 'chair', name: 'Chair' },
+    { id: 'admin', name: 'Admin' },
     { id: 'reviewer', name: 'Reviewer' }
   ];
 
@@ -33,7 +116,6 @@ const SignupForm = () => {
     <div className="flex my-5 items-center justify-center rounded-2xl px-4 py-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="w-full max-w-md">
       
-
         {/* Form Card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-all duration-300">
           <div className="mb-6">
@@ -41,12 +123,20 @@ const SignupForm = () => {
             <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Join us and start your journey</p>
           </div>
           
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          
           {/* Social Login Buttons */}
           <div className="space-y-3 mb-6">
             <button
               type="button"
               onClick={handleGoogleSignUp}
-              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+              disabled={loading}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
             >
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
@@ -56,7 +146,8 @@ const SignupForm = () => {
             <button
               type="button"
               onClick={handleGithubSignUp}
-              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+              disabled={loading}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
             >
               <Github className="h-5 w-5 mr-2" />
               Continue with GitHub
@@ -75,7 +166,7 @@ const SignupForm = () => {
             </div>
           </div>
 
-          <form action = {handleSignUpForm}>
+          <form onSubmit={handleSubmit}>
             {/* Full Name */}
             <div className="mb-5">
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -85,9 +176,12 @@ const SignupForm = () => {
                 type="text"
                 id="fullName"
                 name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
                 placeholder="John Doe"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -100,9 +194,12 @@ const SignupForm = () => {
                 type="email"
                 id="email"
                 name="email"
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="john@example.com"
                 className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -115,8 +212,11 @@ const SignupForm = () => {
                 <select
                   id="role"
                   name="role"
+                  value={formData.role}
+                  onChange={handleChange}
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200 appearance-none"
                   required
+                  disabled={loading}
                 >
                   <option value="" disabled>Choose your role</option>
                   {availableRoles.map((role) => (
@@ -143,9 +243,12 @@ const SignupForm = () => {
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
+                  value={formData.password}
+                  onChange={handleChange}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200"
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -174,8 +277,11 @@ const SignupForm = () => {
                     id="terms"
                     name="agreeToTerms"
                     type="checkbox"
+                    checked={formData.agreeToTerms}
+                    onChange={handleChange}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div className="ml-3 text-sm">
@@ -192,21 +298,34 @@ const SignupForm = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              disabled={loading}
+              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50"
             >
-              Sign Up
-              <svg
-                className="ml-2 -mr-1 h-4 w-4"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                <>
+                  Sign Up
+                  <svg
+                    className="ml-2 -mr-1 h-4 w-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
 

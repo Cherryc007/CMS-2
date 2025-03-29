@@ -2,26 +2,27 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
-
+import { Toaster } from "react-hot-toast";
 import SessionWrapper from "@/components/SessionWrapper/SessionWrapper";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: "Conference Management System",
-  description: "A system for managing conference papers and reviews",
+  title: "CMS Platform",
+  description: "A comprehensive conference management system",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <SessionWrapper>
-        <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.className} antialiased`}>
+        <SessionWrapper>
           <Navbar />
-          {children}
+          <main className="min-h-screen">{children}</main>
           <Footer />
-        </body>
-      </SessionWrapper>
+          <Toaster position="bottom-right" />
+        </SessionWrapper>
+      </body>
     </html>
   );
 }
