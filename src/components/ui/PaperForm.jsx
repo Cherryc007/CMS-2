@@ -2,30 +2,52 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-
-// Predefined conferences data
-const conferences = [
-  "AI & ML Conference 2025",
-  "International Web Summit",
-  "Data Science Global 2025",
-  "Blockchain Innovations 2025",
-  "IoT & Smart Systems Expo",
-];
 
 export default function PaperForm({ onClose }) {
   const { data: session } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingConferences, setIsLoadingConferences] = useState(true);
+  const [conferences, setConferences] = useState([]);
   const [formData, setFormData] = useState({
     conferenceId: "",
     title: "",
     abstract: "",
     fileUrl: ""
   });
+
+  useEffect(() => {
+    fetchConferences();
+  }, []);
+
+  const fetchConferences = async () => {
+    try {
+      setIsLoadingConferences(true);
+      const response = await fetch('/api/conferences');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch conferences");
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.conferences.length > 0) {
+        setConferences(data.conferences);
+      } else {
+        toast.error("No active conferences available for submission");
+      }
+    } catch (error) {
+      console.error("Error fetching conferences:", error);
+      toast.error("Failed to load conferences. Please try again later.");
+    } finally {
+      setIsLoadingConferences(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,21 +136,36 @@ export default function PaperForm({ onClose }) {
           >
             Select Conference
           </label>
-          <select
-            id="conferenceId"
-            name="conferenceId"
-            value={formData.conferenceId}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            required
-          >
-            <option value="">Select a conference</option>
-            {conferences.map((conference) => (
-              <option key={conference} value={conference}>
-                {conference}
-              </option>
-            ))}
-          </select>
+          {isLoadingConferences ? (
+            <div className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 px-3 py-2 text-gray-400 dark:text-gray-500 shadow-sm sm:text-sm animate-pulse">
+              Loading conferences...
+            </div>
+          ) : conferences.length === 0 ? (
+            <div className="mt-1 block w-full rounded-md border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-red-600 dark:text-red-400 shadow-sm sm:text-sm">
+              No active conferences available for submission
+            </div>
+          ) : (
+            <select
+              id="conferenceId"
+              name="conferenceId"
+              value={formData.conferenceId}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              required
+            >
+              <option value="">Select a conference</option>
+              {conferences.map((conference) => (
+                <option key={conference.id} value={conference.id}>
+                  {conference.name} - {conference.location} (Deadline: {conference.submissionDeadline})
+                </option>
+              ))}
+            </select>
+          )}
+          {conferences.length > 0 && formData.conferenceId && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {conferences.find(c => c.id === formData.conferenceId)?.description || ""}
+            </p>
+          )}
         </div>
 
         <div>
@@ -203,7 +240,7 @@ export default function PaperForm({ onClose }) {
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoadingConferences || conferences.length === 0}
             className="bg-blue-500 hover:bg-blue-600 text-white"
           >
             {isSubmitting ? "Submitting..." : "Submit Paper"}

@@ -1,8 +1,18 @@
 "use client";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 export default function PaperCard({ paper, availableReviewers, onAssignReviewer, onRemoveReviewer }) {
+  const [selectedReviewer, setSelectedReviewer] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { data: session } = useSession();
+  
+  // Check if the current user is the assigned reviewer for this paper
+  const isAssignedReviewer = paper.reviewers && 
+    paper.reviewers.some(reviewer => reviewer.id === session?.user?.id);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -27,12 +37,21 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           <span className="inline-flex items-center px-4 py-2 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-2">
             {paper.status}
           </span>
-          <Link 
-            href={`/review-paper?id=${paper.id}`} 
-            className="mt-2 inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-          >
-            Review Paper
-          </Link>
+          {/* Only show Review Paper button for:
+              1. Users who are not admins AND
+              2. Users who are either:
+                 - The assigned reviewer for this paper OR
+                 - Using the component in the reviewer dashboard (where only assigned papers are shown)
+          */}
+          {session?.user.role === "reviewer" && (
+            isAssignedReviewer || !onAssignReviewer) && (
+            <Link 
+              href={`/review-paper?id=${paper.id}`} 
+              className="mt-2 inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+            >
+              Review Paper
+            </Link>
+          )}
         </div>
       </div>
       
@@ -56,35 +75,38 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           </div>
         )}
         
-        <div className="mt-3">
-          <div className="flex items-center">
-            <select
-              id={`reviewer-${paper.id}`}
-              className="block w-2/3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-              defaultValue=""
-            >
-              <option value="" disabled>Select reviewer</option>
-              {availableReviewers.map(reviewer => (
-                <option key={reviewer.id} value={reviewer.id}>
-                  {reviewer.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={(e) => {
-                const select = document.getElementById(`reviewer-${paper.id}`);
-                if (select.value) {
-                  onAssignReviewer(paper.id, select.value);
-                  select.value = "";
-                }
-              }}
-              className="ml-2 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
-            >
-              Assign
-            </button>
+        {/* Only show the assign reviewer section for admin users */}
+        {session?.user.role === "admin" && onAssignReviewer && (
+          <div className="mt-3">
+            <div className="flex items-center">
+              <select
+                id={`reviewer-${paper.id}`}
+                className="block w-2/3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                defaultValue=""
+              >
+                <option value="" disabled>Select reviewer</option>
+                {availableReviewers.map(reviewer => (
+                  <option key={reviewer.id} value={reviewer.id}>
+                    {reviewer.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={(e) => {
+                  const select = document.getElementById(`reviewer-${paper.id}`);
+                  if (select.value) {
+                    onAssignReviewer(paper.id, select.value);
+                    select.value = "";
+                  }
+                }}
+                className="ml-2 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+              >
+                Assign
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </motion.div>
   );

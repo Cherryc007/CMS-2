@@ -54,7 +54,6 @@ const Navbar = () => {
   };
 
   const handleSignOut = async () => {
-    console.log('Signing out...');
     
     try {
       toast.info('Signing out...');
@@ -78,7 +77,10 @@ const Navbar = () => {
       const commonLinks = ["Home"];
       const roleSpecificDashboard = ["Dashboard"]; // Single dashboard link
       
-      return [...commonLinks, ...roleSpecificDashboard];
+      // Add conference creation link for admin users only
+      const adminLinks = session?.user?.role === "admin" ? ["Create Conference"] : [];
+      
+      return [...commonLinks, ...roleSpecificDashboard, ...adminLinks];
     } else {
       // User is not logged in - show public links
       return [ "Services", "About"];
@@ -89,17 +91,22 @@ const Navbar = () => {
   const getNavUrl = (item) => {
     if (item === "Dashboard") {
       // Redirect to role-specific dashboard
-      const role = session?.user?.role || "user";
+      const role = session?.user?.role
       
       switch (role) {
         case "admin":
           return "/admin-dashboard";
         case "author":
           return "/author-dashboard";
+        case "reviewer":
+          return "/reviewer-dashboard"
         default:
           return "/user-dashboard";
       }
     }
+    
+    // Handle Create Conference link
+    if (item === "Create Conference") return "/conference-creation";
     
     // Standard routes
     if (item === "Services") return "/services";
@@ -110,11 +117,7 @@ const Navbar = () => {
   // Get the navigation links based on user status
   const navLinks = getNavLinks();
 
-  console.log('Session:', {
-    user: session?.user,
-    role: session?.user?.role,
-    status
-  });
+  // console.log(session)
 
   return (
     <nav

@@ -3,95 +3,111 @@ import { auth } from '@/auth';
 import connectDB from '@/lib/connectDB';
 import Paper from '@/models/paperModel';
 import User from '@/models/userModel';
+import Conference from '@/models/conferenceModel';
 
 export async function POST(request) {
   try {
-    // Verify authentication
     const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { message: 'Unauthorized: Please log in to submit a paper' },
-        { status: 401 }
-      );
-    }
-
-    // Get JSON data from the request
-    const paperData = await request.json();
     
-    if (!paperData) {
-      return NextResponse.json(
-        { message: 'Missing paper data' },
-        { status: 400 }
-      );
+    // Check if user is authenticated
+    if (!session) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - You must be logged in to submit a paper" 
+      }, { status: 401 });
     }
     
-    // Validate that the email in the session matches the submission email
-    if (session.user.email !== paperData.userEmail) {
-      return NextResponse.json(
-        { message: 'Unauthorized: Email mismatch' },
-        { status: 403 }
-      );
+    // Check role
+    if (session.user.role !== "author") {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - Only authors can submit papers" 
+      }, { status: 403 });
     }
-
+    
+    // Get request body
+    const body = await request.json();
+    const { title, abstract, fileUrl, conferenceId } = body;
+    
     // Validate required fields
-    if (!paperData.conferenceId || !paperData.title || !paperData.abstract || !paperData.fileUrl) {
-      return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
-      );
+    if (!title || !abstract || !fileUrl || !conferenceId) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Missing required fields" 
+      }, { status: 400 });
     }
-
-    // Validate the URL format
-    try {
-      new URL(paperData.fileUrl);
-    } catch (err) {
-      return NextResponse.json(
-        { message: 'Invalid document URL format' },
-        { status: 400 }
-      );
-    }
-
-    // Connect to the database
+    
     await connectDB();
     
-    // Find the user by email
+    // Get the author's user ID from the database
     const user = await User.findOne({ email: session.user.email });
     
     if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: "User not found in the database" 
+      }, { status: 404 });
     }
-
-    // Create a new paper document
+    
+    console.log(`Processing submission for user: ${user._id}, conference: ${conferenceId}`);
+    
+    // Verify the conference exists and is accepting submissions
+    const conference = await Conference.findById(conferenceId);
+    
+    if (!conference) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Conference not found" 
+      }, { status: 404 });
+    }
+    
+    const now = new Date();
+    if (conference.submissionDeadline < now) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "The submission deadline for this conference has passed" 
+      }, { status: 400 });
+    }
+    
+    // Create new paper
     const newPaper = new Paper({
-      title: paperData.title,
-      abstract: paperData.abstract,
-      fileUrl: paperData.fileUrl,
+      title,
+      abstract,
+      fileUrl,
       author: user._id,
-    //   conferenceId: paperData.conferenceId,
+      conferenceId: conference._id,
+      status: "Pending"
     });
-
-    // Save the paper to the database
+    
     await newPaper.save();
-
-    // Return the created paper data
-    return NextResponse.json({
-      message: 'Paper submitted successfully',
-      paper: {
-        title: newPaper.title,
-        abstract: newPaper.abstract,
-        status: newPaper.status,
-        createdAt: newPaper.createdAt
-      }
+    
+    console.log(`Paper submitted successfully: ${newPaper._id}`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: "Paper submitted successfully",
+      paperId: newPaper._id.toString()
     }, { status: 201 });
     
   } catch (error) {
-    console.error('Error submitting paper:', error);
-    return NextResponse.json(
-      { message: 'An error occurred while submitting your paper' },
-      { status: 500 }
-    );
+    console.error("Error submitting paper:", error);
+    
+    // More specific error messages based on error type
+    if (error.name === 'ValidationError') {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Validation error: " + Object.values(error.errors).map(e => e.message).join(', ') 
+      }, { status: 400 });
+    } else if (error.name === 'CastError') {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Invalid ID format" 
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ 
+      success: false, 
+      message: "Failed to submit paper" 
+    }, { status: 500 });
   }
 } 

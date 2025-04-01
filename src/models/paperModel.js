@@ -5,7 +5,7 @@ const paperSchema = new mongoose.Schema({
     abstract: { type: String, required: true },
     fileUrl: { type: String, required: true },
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    conferenceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conference', required: false },
+    conferenceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conference', required: true },
     reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     status: { 
         type: String, 
