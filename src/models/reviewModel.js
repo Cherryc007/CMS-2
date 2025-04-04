@@ -8,21 +8,20 @@ const reviewSchema = new mongoose.Schema({
     required: true,
   },
   feedback: { type: String, required: true },
-  rating: { type: Number, min: 1, max: 5, default: null }, // Optional
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5
+  },
   status: {
     type: String,
-    enum: [
-      "Under Review",
-      "Accepted",
-      "Rejected",
-      "Resubmitted",
-      "FinalSubmitted",
-      "Archived",
-    ],
-    required: true,
+    enum: ['Accepted', 'Rejected', 'Revision Required'],
+    required: true
   },
   createdAt: { type: Date, default: Date.now },
-});
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
 
 const Review = mongoose.models.Review || mongoose.model("Review", reviewSchema);
 export default Review;

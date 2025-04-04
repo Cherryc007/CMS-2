@@ -40,6 +40,31 @@ export async function POST(request) {
       role,
     });
     
+    // Send welcome email
+    try {
+      const welcomeResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sendMail/newUserAlert`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: newUser._id.toString(),
+          userEmail: newUser.email,
+          userName: newUser.name,
+          userRole: newUser.role
+        }),
+      });
+      
+      if (!welcomeResponse.ok) {
+        console.error("Failed to send welcome email but user was created successfully");
+      } else {
+        console.log("Welcome email sent to new user:", email);
+      }
+    } catch (emailError) {
+      console.error("Error sending welcome email:", emailError);
+      // Don't block registration if email fails
+    }
+    
     // Return success response (without password)
     return NextResponse.json(
       { 

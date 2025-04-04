@@ -40,16 +40,47 @@ export async function GET(request) {
     
     console.log("Fetching papers with query:", JSON.stringify(query));
     
-    // Fetch papers authored by the current user
-    const papers = await Paper.find(query)
-      .populate('reviewer', 'name email')
-      .populate('conferenceId', 'name')
-      .populate({
-        path: 'reviews',
-        select: 'feedback rating status'
-      })
-      .sort({ createdAt: -1 })
-      .lean() || [];
+    let papers = [];
+    try {
+      // Fetch papers authored by the current user with error handling for populate
+      papers = await Paper.find(query)
+        .populate('reviewer', 'name email')
+        .populate('conferenceId', 'name')
+        .sort({ createdAt: -1 })
+        .lean() || [];
+        
+      // Try to populate reviews only if there's a Review model
+      if (papers.length > 0) {
+        try {
+          // Manually handle review population to avoid model errors
+          const Review = require('@/models/reviewModel').default;
+          for (let paper of papers) {
+            if (paper.reviews && paper.reviews.length > 0) {
+              const reviewIds = paper.reviews.map(id => id.toString());
+              const reviews = await Review.find({ 
+                _id: { $in: reviewIds } 
+              }).select('feedback rating status').lean();
+              
+              paper.reviewData = reviews;
+            } else {
+              paper.reviewData = [];
+            }
+          }
+        } catch (reviewError) {
+          console.warn("Unable to populate reviews, they will not be included:", reviewError.message);
+          // Continue without reviews if the model is missing
+          papers.forEach(paper => {
+            paper.reviewData = [];
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error in paper fetch query:", error);
+      return NextResponse.json({ 
+        success: false, 
+        message: `Error querying papers: ${error.message}` 
+      }, { status: 500 });
+    }
     
     console.log(`Found ${papers.length} papers for user ${user._id}`);
     
@@ -77,7 +108,7 @@ export async function GET(request) {
         id: paper.reviewer._id.toString(),
         name: paper.reviewer.name
       } : null,
-      reviews: (paper.reviews || []).map(review => ({
+      reviews: (paper.reviewData || []).map(review => ({
         id: review._id.toString(),
         feedback: review.feedback,
         rating: review.rating,

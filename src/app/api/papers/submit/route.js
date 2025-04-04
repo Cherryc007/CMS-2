@@ -83,6 +83,32 @@ export async function POST(request) {
     
     console.log(`Paper submitted successfully: ${newPaper._id}`);
     
+    // Send email notifications
+    try {
+      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/paperSubmissionAlert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '' // Forward cookies for auth
+        },
+        body: JSON.stringify({
+          paperTitle: title,
+          authorId: user._id.toString(),
+          authorEmail: user.email,
+          authorName: user.name,
+          conferenceId: conference._id.toString()
+        }),
+      });
+      
+      if (!emailResponse.ok) {
+        console.error("Failed to send email notifications, but paper was submitted successfully");
+      } else {
+        console.log("Email notifications sent successfully");
+      }
+    } catch (emailError) {
+      console.error("Error sending email notifications:", emailError);
+    }
+    
     return NextResponse.json({ 
       success: true, 
       message: "Paper submitted successfully",

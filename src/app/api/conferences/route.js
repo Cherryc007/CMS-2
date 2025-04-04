@@ -38,41 +38,68 @@ export async function POST(request) {
   }
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const session = await auth();
-    
-    // Check if user is authenticated
-    if (!session) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - You must be logged in to view conferences" 
-      }, { status: 401 });
-    }
-    
     await connectDB();
     
-    // Fetch active conferences that are open for submissions
-    const conferences = await Conference.find({ 
-      submissionDeadline: { $gt: new Date() } // Only conferences with future submission deadlines
-    })
-    .select('name description submissionDeadline _id location')
-    .sort({ submissionDeadline: 1 }) // Sort by closest deadline first
-    .lean();
+    // Fetch all conferences
+    const allConferences = await Conference.find({}).sort({ submissionDeadline: 1 });
     
-    // Format conferences for frontend consumption
-    const formattedConferences = conferences.map(conference => ({
-      id: conference._id.toString(),
-      name: conference.name,
-      description: conference.description || "",
-      location: conference.location,
-      submissionDeadline: new Date(conference.submissionDeadline).toLocaleDateString()
-    }));
+    if (!allConferences) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "No conferences found" 
+      }, { status: 404 });
+    }
     
-    return NextResponse.json({ 
-      success: true, 
-      conferences: formattedConferences
-    }, { status: 200 });
+    const now = new Date();
+    const activeConferences = [];
+    const expiredConferences = [];
+    
+    // Process conferences and separate into active and expired
+    allConferences.forEach(conference => {
+      const deadlineDate = new Date(conference.submissionDeadline);
+      const startDate = new Date(conference.startDate);
+      const endDate = new Date(conference.endDate);
+      
+      // Calculate days remaining until deadline
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysRemaining = Math.ceil((deadlineDate - now) / msPerDay);
+      
+      // Format conference data for frontend consumption
+      const formattedConference = {
+        id: conference._id.toString(),
+        name: conference.name,
+        description: conference.description,
+        location: conference.location,
+        startDate: conference.startDate,
+        endDate: conference.endDate,
+        submissionDeadline: conference.submissionDeadline,
+        daysRemaining: daysRemaining > 0 ? daysRemaining : 0
+      };
+      
+      // Separate active and expired conferences
+      if (deadlineDate >= now) {
+        activeConferences.push(formattedConference);
+      } else {
+        expiredConferences.push(formattedConference);
+      }
+    });
+    
+    // Sort active conferences by days remaining (closest deadline first)
+    activeConferences.sort((a, b) => a.daysRemaining - b.daysRemaining);
+    
+    // Sort expired conferences by most recently expired first
+    expiredConferences.sort((a, b) => new Date(b.submissionDeadline) - new Date(a.submissionDeadline));
+    
+    return NextResponse.json({
+      success: true,
+      activeConferences,
+      expiredConferences,
+      total: allConferences.length,
+      activeCount: activeConferences.length,
+      expiredCount: expiredConferences.length
+    });
     
   } catch (error) {
     console.error("Error fetching conferences:", error);

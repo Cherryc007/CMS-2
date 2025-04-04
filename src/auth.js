@@ -26,14 +26,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // e.g. domain, username, password, 2FA token, etc.
       // You can pass any HTML attribute to the <input> tag through the object.
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "email@example.com" },
+        email: {
+          label: "Email",
+          type: "email",
+          placeholder: "email@example.com",
+        },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
         try {
           // Add logic here to look up the user from the credentials supplied
           await connectDB();
-          
+
           if (!credentials?.email || !credentials?.password) {
             throw new Error("Email and password are required");
           }
@@ -48,7 +52,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // Check if the user has a password (they might have signed up with OAuth)
           if (!user.password) {
-            throw new Error("Please sign in with the provider you used to register");
+            throw new Error(
+              "Please sign in with the provider you used to register"
+            );
           }
 
           const isMatch = await bcrypt.compare(
@@ -75,8 +81,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account && (account.provider === "google" || account.provider === "github")) {
+    async signIn({ user, account, req }) {
+      if (
+        account &&
+        (account.provider === "google" || account.provider === "github")
+      ) {
         await connectDB();
         try {
           const existingUser = await User.findOne({
@@ -113,6 +122,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             // Set the role in the user object
             user.role = "author";
+            
+            // Send new user notification
+            try {
+              const notifications = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/newUserAlert`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                  userEmail: user.email,
+                  userName: user.name,
+                  userRole: "author"
+                }),
+              });
+              
+              const notificationResponse = await notifications.json();
+              if (!notificationResponse.success) {
+                console.error("Failed to send welcome email:", notificationResponse.message);
+              } else {
+                console.log("Welcome email sent for new user:", user.email);
+              }
+            } catch (emailError) {
+              console.error("Failed to send new user notification:", emailError);
+            }
           } else {
             // If user exists, get their role from the database
             user.role = existingUser.role;
@@ -129,6 +162,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return false;
         }
       }
+      
+      // Send login notification for all successful logins
+      try {
+        // Get client information from headers if available
+        const userAgent = req?.headers?.['user-agent'] || 'Unknown device';
+        const ipAddress = req?.headers?.['x-forwarded-for'] || 
+                         req?.headers?.['x-real-ip'] || 
+                         'Unknown IP';
+                         
+        const loginNotification = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/loginAlert`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userEmail: user.email,
+            userName: user.name,
+            userRole: user.role || "author",
+            timestamp: new Date().toISOString(),
+            ipAddress,
+            userAgent
+          }),
+        });
+        
+        const loginResponse = await loginNotification.json();
+        if (!loginResponse.success) {
+          console.error("Failed to send login notification:", loginResponse.message);
+        } else {
+          console.log("Login notification sent for user:", user.email);
+        }
+      } catch (emailError) {
+        console.error("Failed to send login notification:", emailError);
+        // Don't block login if email notification fails
+      }
+      
       return true;
     },
     async redirect({ url, baseUrl }) {

@@ -36,8 +36,8 @@ export default function PaperForm({ onClose }) {
 
       const data = await response.json();
       
-      if (data.success && data.conferences.length > 0) {
-        setConferences(data.conferences);
+      if (data.success && data.activeConferences && data.activeConferences.length > 0) {
+        setConferences(data.activeConferences);
       } else {
         toast.error("No active conferences available for submission");
       }
@@ -156,7 +156,7 @@ export default function PaperForm({ onClose }) {
               <option value="">Select a conference</option>
               {conferences.map((conference) => (
                 <option key={conference.id} value={conference.id}>
-                  {conference.name} - {conference.location} (Deadline: {conference.submissionDeadline})
+                  {conference.name} - {conference.location} (Deadline: {conference.submissionDeadline}, {conference.daysRemaining} days left)
                 </option>
               ))}
             </select>

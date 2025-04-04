@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
-import Review from "@/models/reviewModel";
+// Import Review model dynamically to handle missing model case
 import { auth } from "@/auth";
 
 export async function POST(request) {
@@ -28,8 +28,8 @@ export async function POST(request) {
     
     await connectDB();
     
-    // Check if paper exists
-    const paper = await Paper.findById(paperId);
+    // Check if paper exists and populate author
+    const paper = await Paper.findById(paperId).populate('author', 'name email _id');
     
     if (!paper) {
       return NextResponse.json({ 
@@ -46,6 +46,18 @@ export async function POST(request) {
       }, { status: 403 });
     }
     
+    // Dynamically load the Review model to handle potential missing model
+    let Review;
+    try {
+      Review = require('@/models/reviewModel').default;
+    } catch (modelError) {
+      console.error("Error loading Review model:", modelError);
+      return NextResponse.json({ 
+        success: false, 
+        message: "Review system is not fully set up. Please contact administrator." 
+      }, { status: 500 });
+    }
+    
     // Create new review
     const review = await Review.create({
       paper: paperId,
@@ -59,6 +71,30 @@ export async function POST(request) {
     paper.reviews.push(review._id);
     paper.status = status;
     await paper.save();
+    
+    // Send email notifications
+    try {
+      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/feedbackAlert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '' // Forward cookies for auth
+        },
+        body: JSON.stringify({
+          reviewId: review._id.toString(),
+          paperId: paper._id.toString(),
+          decision: status
+        }),
+      });
+      
+      if (!emailResponse.ok) {
+        console.error("Failed to send email notifications, but review was submitted successfully");
+      } else {
+        console.log("Email notifications sent successfully for review submission");
+      }
+    } catch (emailError) {
+      console.error("Error sending email notifications:", emailError);
+    }
     
     return NextResponse.json({ 
       success: true, 

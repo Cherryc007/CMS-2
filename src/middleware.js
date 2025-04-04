@@ -12,7 +12,7 @@ export default async function middleware(request) {
   const isAuthenticated = !!token;
   
   // Define public paths that don't require authentication
-  const isPublicPath = path === '/' || path === '/login' || path === '/register';
+  const isPublicPath = path === '/' || path === '/login' || path === '/register' || path === "/signup";
   
   // Define paths that authenticated users can access without role checks
   const isCommonAuthPath = path === '/home';
