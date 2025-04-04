@@ -64,7 +64,7 @@ export default function PartnersSection() {
           transition={{ duration: 0.5, delay: 0.6 }}
         >
           <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-            Interested in partnering with us? We're always looking for new collaborations.
+            Interested in partnering with us? We are always looking for new collaborations.
           </p>
           <motion.button 
             className="px-5 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors text-sm"
