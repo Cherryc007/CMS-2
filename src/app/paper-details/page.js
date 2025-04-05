@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
@@ -272,3 +272,11 @@ export default function PaperDetails() {
     </div>
   );
 } 
+// Wrap the PaperDetails component inside Suspense
+export default function PaperDetailsWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading Paper Details...</div>}>
+      <PaperDetails />
+    </Suspense>
+  );
+}

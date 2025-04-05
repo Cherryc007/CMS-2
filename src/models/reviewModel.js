@@ -16,7 +16,7 @@ const reviewSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Accepted', 'Rejected', 'Revision Required'],
+    enum: ['Accepted', 'Rejected', 'Request Resubmission', 'Resubmitted'],
     required: true
   },
   createdAt: { type: Date, default: Date.now },
