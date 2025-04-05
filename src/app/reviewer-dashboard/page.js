@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-export default function ReviewerDashboard() {
+function ReviewerDashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [papers, setPapers] = useState([]);
@@ -59,14 +59,6 @@ export default function ReviewerDashboard() {
       setIsLoading(false);
     }
   };
-
-  if (status === "loading" || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -161,5 +153,17 @@ export default function ReviewerDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReviewerDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <ReviewerDashboardContent />
+    </Suspense>
   );
 } 

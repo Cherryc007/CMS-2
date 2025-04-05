@@ -7,12 +7,9 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Download, Clock, User, Calendar, CheckCircle, XCircle } from "lucide-react";
 
-export default function PaperDetails() {
+function PaperContent({ paperId }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const paperId = searchParams.get("id");
-  
   const [paper, setPaper] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -271,12 +268,22 @@ export default function PaperDetails() {
       </div>
     </div>
   );
-} 
-// Wrap the PaperDetails component inside Suspense
-export default function PaperDetailsWithSuspense() {
+}
+
+export default function PaperDetails() {
   return (
-    <Suspense fallback={<div>Loading Paper Details...</div>}>
-      <PaperDetails />
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <SearchParamsWrapper />
     </Suspense>
   );
 }
+
+function SearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  const paperId = searchParams.get("id");
+  return <PaperContent paperId={paperId} />;
+} 

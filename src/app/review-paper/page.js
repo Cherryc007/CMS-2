@@ -1,13 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 
-export default function ReviewPaper() {
-  const searchParams = useSearchParams();
-  const paperId = searchParams.get("id");
+function ReviewPaperContent({ paperId }) {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   
@@ -213,5 +211,23 @@ export default function ReviewPaper() {
         </form>
       </motion.div>
     </div>
+  );
+}
+
+function SearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  const paperId = searchParams.get("id");
+  return <ReviewPaperContent paperId={paperId} />;
+}
+
+export default function ReviewPaper() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <SearchParamsWrapper />
+    </Suspense>
   );
 } 
