@@ -1,26 +1,17 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import path from 'path';
-import fs from 'fs';
+import { uploadToBlob, validateFileUpload } from '@/lib/blobUtils';
 
 export async function POST(request) {
   try {
     const session = await auth();
     
-    // Check if user is authenticated
-    if (!session) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - You must be logged in to upload files" 
-      }, { status: 401 });
-    }
-
-    // Check role
-    if (session.user.role !== "reviewer") {
+    // Check if user is authenticated and has reviewer role
+    if (!session || session.user.role !== "reviewer") {
       return NextResponse.json({ 
         success: false, 
         message: "Unauthorized - Only reviewers can upload review files" 
-      }, { status: 403 });
+      }, { status: 401 });
     }
 
     // Handle file upload
@@ -28,51 +19,31 @@ export async function POST(request) {
     const file = formData.get('file');
     const paperId = formData.get('paperId');
 
-    if (!file) {
+    // Validate required fields
+    if (!file || !paperId) {
       return NextResponse.json({ 
         success: false, 
-        message: "No file uploaded" 
+        message: "File and paper ID are required" 
       }, { status: 400 });
     }
 
-    if (!paperId) {
+    // Validate file upload
+    const validationResult = await validateFileUpload(file);
+    if (!validationResult.valid) {
       return NextResponse.json({ 
         success: false, 
-        message: "Paper ID is required" 
+        message: validationResult.error 
       }, { status: 400 });
     }
-
-    // Validate file type
-    if (!file.type.includes('pdf')) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Only PDF files are allowed" 
-      }, { status: 400 });
-    }
-
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = `review-${paperId}-${uniqueSuffix}.pdf`;
-    const uploadDir = 'public/uploads/reviews';
     
-    // Ensure upload directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Save file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filePath = path.join(uploadDir, filename);
-    fs.writeFileSync(filePath, buffer);
-
-    // Return the file path relative to public directory
-    const relativePath = `/uploads/reviews/${filename}`;
-
+    // Upload file to Vercel Blob
+    const { url, pathname } = await uploadToBlob(file, `review-${paperId}`);
+    
     return NextResponse.json({ 
       success: true, 
       message: "Review file uploaded successfully",
-      filePath: relativePath
+      fileUrl: url,
+      filePath: pathname
     }, { status: 200 });
 
   } catch (error) {
