@@ -9,6 +9,13 @@ import { NextResponse } from 'next/server';
  */
 export async function uploadToBlob(file, prefix) {
   try {
+    console.log('Starting file upload to Vercel Blob...');
+    console.log('File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+
     // Validate file type
     if (!file.type || !file.type.includes('pdf')) {
       throw new Error('Only PDF files are allowed');
@@ -19,16 +26,26 @@ export async function uploadToBlob(file, prefix) {
     const randomString = Math.random().toString(36).substring(2, 8);
     const filename = `${prefix}-${timestamp}-${randomString}.pdf`;
 
+    console.log('Generated filename:', filename);
+
+    // Check if BLOB_READ_WRITE_TOKEN is available
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      throw new Error('BLOB_READ_WRITE_TOKEN is not configured');
+    }
+
     // Upload to Vercel Blob
     const { url, pathname } = await put(filename, file, {
       access: 'public',
       contentType: 'application/pdf',
+      token: process.env.BLOB_READ_WRITE_TOKEN
     });
+
+    console.log('File uploaded successfully:', { url, pathname });
 
     return { url, pathname };
   } catch (error) {
     console.error('Error uploading to Vercel Blob:', error);
-    throw error;
+    throw new Error(`Failed to upload file: ${error.message}`);
   }
 }
 
@@ -40,6 +57,13 @@ export async function uploadToBlob(file, prefix) {
  */
 export async function validateFileUpload(file, maxSize = 10 * 1024 * 1024) { // 10MB default
   try {
+    console.log('Validating file upload...');
+    console.log('File details:', {
+      name: file?.name,
+      type: file?.type,
+      size: file?.size
+    });
+
     // Check if file exists
     if (!file) {
       return { valid: false, error: 'No file provided' };
@@ -55,6 +79,7 @@ export async function validateFileUpload(file, maxSize = 10 * 1024 * 1024) { // 
       return { valid: false, error: `File size must be less than ${maxSize / (1024 * 1024)}MB` };
     }
 
+    console.log('File validation successful');
     return { valid: true };
   } catch (error) {
     console.error('Error validating file:', error);

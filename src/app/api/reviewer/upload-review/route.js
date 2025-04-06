@@ -4,6 +4,7 @@ import { uploadToBlob, validateFileUpload } from '@/lib/blobUtils';
 
 export async function POST(request) {
   try {
+    console.log('Starting review file upload process...');
     const session = await auth();
     
     // Check if user is authenticated and has reviewer role
@@ -13,11 +14,15 @@ export async function POST(request) {
         message: "Unauthorized - Only reviewers can upload review files" 
       }, { status: 401 });
     }
-
-    // Handle file upload
+    
     const formData = await request.formData();
     const file = formData.get('file');
     const paperId = formData.get('paperId');
+
+    console.log('Received form data:', {
+      paperId,
+      hasFile: !!file
+    });
 
     // Validate required fields
     if (!file || !paperId) {
@@ -36,8 +41,10 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
+    console.log('Uploading file to Vercel Blob...');
     // Upload file to Vercel Blob
     const { url, pathname } = await uploadToBlob(file, `review-${paperId}`);
+    console.log('File uploaded successfully:', { url, pathname });
     
     return NextResponse.json({ 
       success: true, 
@@ -45,12 +52,12 @@ export async function POST(request) {
       fileUrl: url,
       filePath: pathname
     }, { status: 200 });
-
+    
   } catch (error) {
     console.error("Error uploading review file:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Failed to upload review file" 
+      message: error.message || "Failed to upload review file" 
     }, { status: 500 });
   }
 } 
