@@ -27,10 +27,10 @@ export async function POST(request) {
     
     // Get request body
     const body = await request.json();
-    const { title, abstract, filePath, conferenceId } = body;
+    const { title, abstract, filePath, fileUrl, conferenceId } = body;
     
     // Validate required fields
-    if (!title || !abstract || !filePath || !conferenceId) {
+    if (!title || !abstract || !filePath || !fileUrl || !conferenceId) {
       return NextResponse.json({ 
         success: false, 
         message: "Missing required fields" 
@@ -70,18 +70,19 @@ export async function POST(request) {
     }
     
     // Create new paper
-    const newPaper = new Paper({
+    const paper = await Paper.create({
       title,
       abstract,
-      filePath,
+      conferenceId,
       author: user._id,
-      conferenceId: conference._id,
+      filePath,
+      fileUrl,
       status: "Pending"
     });
     
-    await newPaper.save();
+    await paper.save();
     
-    console.log(`Paper submitted successfully: ${newPaper._id}`);
+    console.log(`Paper submitted successfully: ${paper._id}`);
     
     // Send email notifications
     try {
@@ -112,7 +113,7 @@ export async function POST(request) {
     return NextResponse.json({ 
       success: true, 
       message: "Paper submitted successfully",
-      paperId: newPaper._id.toString()
+      paperId: paper._id.toString()
     }, { status: 201 });
     
   } catch (error) {

@@ -18,7 +18,8 @@ export default function PaperForm({ onClose }) {
     conferenceId: "",
     title: "",
     abstract: "",
-    filePath: ""
+    filePath: "",
+    fileUrl: ""
   });
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -98,7 +99,8 @@ export default function PaperForm({ onClose }) {
       const data = await response.json();
       setFormData(prev => ({
         ...prev,
-        filePath: data.filePath
+        filePath: data.filePath,
+        fileUrl: data.fileUrl
       }));
       toast.success("File uploaded successfully");
     } catch (error) {
