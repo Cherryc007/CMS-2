@@ -3,10 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   
   // ✅ Add this to fix cookies on Vercel domains
-  trustHost: true, 
+  //trustHost: true, 
   
   experimental: {
-    serverActions: true,
+    serverActions: {},
   },
   
   images: {

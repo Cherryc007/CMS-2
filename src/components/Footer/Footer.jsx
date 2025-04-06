@@ -34,7 +34,7 @@ const Footer = () => {
           <div>
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 transform transition-transform duration-300 hover:translate-x-1">CMS</h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              A powerful content management system designed for modern teams and developers.
+              A powerful conference management system designed for modern teams and developers.
             </p>
             {/* Social Icons */}
             <div className="flex space-x-4 mt-6">

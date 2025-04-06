@@ -6,7 +6,7 @@ export default async function middleware(request) {
   const path = request.nextUrl.pathname;
   
   // Get the token using next-auth
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET, cookieName: "__Secure-next-auth.session-token", });
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET,cookieName: "__Secure-next-auth.session-token", }); // 
   
   // Check if the user is authenticated
   const isAuthenticated = !!token;

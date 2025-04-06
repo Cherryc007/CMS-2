@@ -30,8 +30,8 @@ export async function POST(request) {
           <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
             <h3 style="margin-top: 0; color: #374151;">Login Details:</h3>
             <p style="margin-bottom: 5px;"><strong>Time:</strong> ${formattedLoginTime}</p>
-            ${ipAddress ? `<p style="margin-bottom: 5px;"><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
-            ${userAgent ? `<p style="margin-bottom: 5px;"><strong>Device/Browser:</strong> ${userAgent}</p>` : ''}
+            ${ipAddress ? <p style="margin-bottom: 5px;"><strong>IP Address:</strong> ${ipAddress}</p> : ''}
+            ${userAgent ? <p style="margin-bottom: 5px;"><strong>Device/Browser:</strong> ${userAgent}</p> : ''}
             <p style="margin-bottom: 0;"><strong>Account Type:</strong> ${userRole.charAt(0).toUpperCase() + userRole.slice(1)}</p>
           </div>
           <p>If this was you, no action is needed. If you don't recognize this login, please contact the system administrator immediately to secure your account.</p>
@@ -64,6 +64,6 @@ export async function POST(request) {
     return NextResponse.json({ 
       success: false, 
       message: "Failed to send login alert email"
-    }, { status: 500 });
-  }
+    }, { status: 500 });
+  }
 }

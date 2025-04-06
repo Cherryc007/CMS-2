@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import connectDB from "./lib/connectDB";
@@ -9,7 +9,7 @@ import GoogleProvider from "next-auth/providers/google";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    trustHost: true,
+    //trustHost: true,
     strategy: "jwt", // ✅ Ensures token-based sessions (fully supported on Vercel)
   },
   cookies: {
@@ -25,7 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   providers: [
-    GitHub({
+    GitHubProvider({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
     }),
