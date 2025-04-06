@@ -171,7 +171,7 @@ function ReviewerDashboardContent() {
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Papers Assigned</h2>
             <p className="text-gray-600 dark:text-gray-300">
-              You don't have any papers assigned for review at the moment.
+              You do not have any papers assigned for review at the moment.
             </p>
           </motion.div>
         ) : (
