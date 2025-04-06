@@ -80,24 +80,26 @@ function ReviewerDashboardContent() {
     }
   };
 
-  const handleDownload = (paper) => {
-    if (!paper.filePath && !paper.fileUrl) {
+  const handleDownload = async (paper) => {
+    if (!paper.fileUrl) {
       toast.error("No file available for download");
       return;
     }
     
-    // Use filePath if available, otherwise fall back to fileUrl
-    const fileUrl = paper.filePath || paper.fileUrl;
-    
-    // Create a temporary anchor element to trigger download
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = paper.fileUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file. Please try again.");
+    }
   };
 
   if (isLoading) {
@@ -169,7 +171,7 @@ function ReviewerDashboardContent() {
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Papers Assigned</h2>
             <p className="text-gray-600 dark:text-gray-300">
-              You do not have any papers assigned for review at the moment.
+              You don't have any papers assigned for review at the moment.
             </p>
           </motion.div>
         ) : (

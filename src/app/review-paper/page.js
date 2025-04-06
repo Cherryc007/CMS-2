@@ -185,10 +185,16 @@ function ReviewPaperContent({ paperId }) {
           </div>
           <div className="mt-4">
             <a
-              href={paper.filePath || paper.fileUrl}
+              href={paper.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center text-blue-600 hover:text-blue-800"
+              onClick={(e) => {
+                if (!paper.fileUrl) {
+                  e.preventDefault();
+                  toast.error("No file available for download");
+                }
+              }}
             >
               <Download className="w-5 h-5 mr-2" />
               Download Paper

@@ -74,24 +74,26 @@ function PaperContent({ paperId }) {
     }
   };
 
-  const handleDownload = () => {
-    if (!paper.filePath && !paper.fileUrl) {
+  const handleDownload = async () => {
+    if (!paper.fileUrl) {
       toast.error("No file available for download");
       return;
     }
     
-    // Use filePath if available, otherwise fall back to fileUrl
-    const fileUrl = paper.filePath || paper.fileUrl;
-    
-    // Create a temporary anchor element to trigger download
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = paper.fileUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file. Please try again.");
+    }
   };
 
   if (loading) {
@@ -264,13 +266,19 @@ function PaperContent({ paperId }) {
                       <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
                         {review.feedback}
                       </p>
-                      {review.filePath && (
+                      {review.fileUrl && (
                         <div className="mt-3">
                           <a
-                            href={review.filePath}
+                            href={review.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                            onClick={(e) => {
+                              if (!review.fileUrl) {
+                                e.preventDefault();
+                                toast.error("No review file available for download");
+                              }
+                            }}
                           >
                             <Download className="w-4 h-4 mr-1" />
                             Download Review File
