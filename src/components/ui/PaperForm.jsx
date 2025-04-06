@@ -119,7 +119,7 @@ export default function PaperForm({ onClose }) {
       return;
     }
 
-    if (!formData.filePath) {
+    if (!formData.filePath || !formData.fileUrl) {
       toast.error("Please upload your paper file");
       return;
     }
@@ -127,17 +127,15 @@ export default function PaperForm({ onClose }) {
     setIsSubmitting(true);
     
     try {
-      const submission = {
-        ...formData,
-        userEmail: session.user.email,
-      };
+      const formDataToSubmit = new FormData();
+      formDataToSubmit.append('title', formData.title);
+      formDataToSubmit.append('abstract', formData.abstract);
+      formDataToSubmit.append('conferenceId', formData.conferenceId);
+      formDataToSubmit.append('file', selectedFile);
 
-      const response = await fetch('/api/papers/submit', {
+      const response = await fetch('/api/author/submit-paper', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submission),
+        body: formDataToSubmit,
       });
 
       if (!response.ok) {
