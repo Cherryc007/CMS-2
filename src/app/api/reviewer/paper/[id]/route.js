@@ -47,6 +47,7 @@ export async function GET(request, { params }) {
       title: paper.title,
       abstract: paper.abstract,
       fileUrl: paper.fileUrl,
+      filePath: paper.filePath,
       author: paper.author ? paper.author.name : "Unknown Author",
       authorEmail: paper.author ? paper.author.email : "",
       conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",

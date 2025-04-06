@@ -93,30 +93,17 @@ export async function GET(request) {
       }, { status: 404 });
     }
     
-    // Format papers for frontend consumption - handle empty papers array
+    // Format papers for frontend consumption
     const formattedPapers = papers.map(paper => ({
       id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
-      fileUrl: paper.fileUrl,
-      filePath: paper.filePath,
-      submissionDate: new Date(paper.createdAt).toLocaleDateString(),
-      lastUpdated: new Date(paper.updatedAt).toLocaleDateString(),
-      status: paper.status,
+      fileUrl: paper.fileUrl || null,
+      filePath: paper.filePath || null,
       conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
-      conferenceId: paper.conferenceId ? paper.conferenceId._id.toString() : null,
-      hasReviewer: !!paper.reviewer,
-      reviewer: paper.reviewer ? {
-        id: paper.reviewer._id.toString(),
-        name: paper.reviewer.name
-      } : null,
-      reviews: (paper.reviewData || []).map(review => ({
-        id: review._id.toString(),
-        feedback: review.feedback,
-        rating: review.rating,
-        status: review.status,
-        filePath: review.filePath
-      }))
+      submissionDate: new Date(paper.createdAt).toLocaleDateString(),
+      status: paper.status,
+      hasReviews: paper.reviews && paper.reviews.length > 0,
     }));
     
     // Calculate statistics - all zeros if no papers

@@ -75,24 +75,23 @@ function PaperContent({ paperId }) {
   };
 
   const handleDownload = async () => {
-    if (!paper.fileUrl) {
-      toast.error("No file available for download");
-      return;
-    }
-    
     try {
-      // Create a temporary anchor element to trigger download
+      if (!paper.fileUrl) {
+        toast.error("No file available for download");
+        return;
+      }
+
+      // Create a temporary anchor element
       const link = document.createElement('a');
       link.href = paper.fileUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download file. Please try again.");
+      console.error('Download error:', error);
+      toast.error("Failed to download the file");
     }
   };
 
