@@ -19,6 +19,7 @@ const reviewSchema = new mongoose.Schema({
     enum: ['Accepted', 'Rejected', 'Request Resubmission', 'Resubmitted'],
     required: true
   },
+  filePath: { type: String }, // Optional field for uploaded review file
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

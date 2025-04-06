@@ -99,6 +99,7 @@ export async function GET(request) {
       title: paper.title,
       abstract: paper.abstract,
       fileUrl: paper.fileUrl,
+      filePath: paper.filePath,
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       lastUpdated: new Date(paper.updatedAt).toLocaleDateString(),
       status: paper.status,
@@ -113,7 +114,8 @@ export async function GET(request) {
         id: review._id.toString(),
         feedback: review.feedback,
         rating: review.rating,
-        status: review.status
+        status: review.status,
+        filePath: review.filePath
       }))
     }));
     

@@ -31,6 +31,8 @@ export async function GET(request) {
       id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
+      fileUrl: paper.fileUrl,
+      filePath: paper.filePath,
       author: paper.author ? paper.author.name : "Unknown Author",
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status,

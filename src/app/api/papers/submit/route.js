@@ -27,10 +27,10 @@ export async function POST(request) {
     
     // Get request body
     const body = await request.json();
-    const { title, abstract, fileUrl, conferenceId } = body;
+    const { title, abstract, filePath, conferenceId } = body;
     
     // Validate required fields
-    if (!title || !abstract || !fileUrl || !conferenceId) {
+    if (!title || !abstract || !filePath || !conferenceId) {
       return NextResponse.json({ 
         success: false, 
         message: "Missing required fields" 
@@ -73,7 +73,7 @@ export async function POST(request) {
     const newPaper = new Paper({
       title,
       abstract,
-      fileUrl,
+      filePath,
       author: user._id,
       conferenceId: conference._id,
       status: "Pending"

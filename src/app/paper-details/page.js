@@ -74,6 +74,26 @@ function PaperContent({ paperId }) {
     }
   };
 
+  const handleDownload = () => {
+    if (!paper.filePath && !paper.fileUrl) {
+      toast.error("No file available for download");
+      return;
+    }
+    
+    // Use filePath if available, otherwise fall back to fileUrl
+    const fileUrl = paper.filePath || paper.fileUrl;
+    
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8 flex justify-center items-center">
@@ -203,15 +223,13 @@ function PaperContent({ paperId }) {
             
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mb-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Paper File</h2>
-              <a
-                href={paper.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Button
+                onClick={handleDownload}
                 className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download Paper
-              </a>
+              </Button>
             </div>
             
             {paper.reviews && paper.reviews.length > 0 && (
@@ -246,21 +264,22 @@ function PaperContent({ paperId }) {
                       <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
                         {review.feedback}
                       </p>
+                      {review.filePath && (
+                        <div className="mt-3">
+                          <a
+                            href={review.filePath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Download Review File
+                          </a>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
-              </div>
-            )}
-            
-            {paper.status === "Accepted" && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6 flex justify-end">
-                <Button
-                  onClick={() => router.push(`/submit-final?id=${paper.id}`)}
-                  className="bg-green-500 hover:bg-green-600 text-white"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Submit Final Version
-                </Button>
               </div>
             )}
           </div>
@@ -270,20 +289,20 @@ function PaperContent({ paperId }) {
   );
 }
 
+function SearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  const paperId = searchParams.get("id");
+  return <PaperContent paperId={paperId} />;
+}
+
 export default function PaperDetails() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8 flex justify-center items-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     }>
       <SearchParamsWrapper />
     </Suspense>
   );
-}
-
-function SearchParamsWrapper() {
-  const searchParams = useSearchParams();
-  const paperId = searchParams.get("id");
-  return <PaperContent paperId={paperId} />;
 } 

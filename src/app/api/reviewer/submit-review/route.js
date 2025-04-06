@@ -17,7 +17,7 @@ export async function POST(request) {
     }
     
     const body = await request.json();
-    const { paperId, feedback, rating, status } = body;
+    const { paperId, feedback, rating, status, filePath } = body;
     
     if (!paperId || !feedback || !status) {
       return NextResponse.json({ 
@@ -64,7 +64,8 @@ export async function POST(request) {
       reviewer: session.user.id,
       feedback,
       rating,
-      status
+      status,
+      filePath
     });
     
     // Update paper status and add review to paper's reviews array
