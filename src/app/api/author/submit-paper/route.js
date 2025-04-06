@@ -89,7 +89,7 @@ export async function POST(request) {
     
     // Send email notifications
     try {
-      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/paperSubmitted`, {
+      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/paperSubmissionAlert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
