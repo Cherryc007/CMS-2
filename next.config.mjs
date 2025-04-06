@@ -1,5 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  
+  // ✅ Add this to fix cookies on Vercel domains
+  trustHost: true, 
+  
+  experimental: {
+    serverActions: true,
+  },
+  
   images: {
     remotePatterns: [
       {

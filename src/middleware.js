@@ -1,63 +1,63 @@
 import { NextResponse } from "next/server";
-import {getToken} from "next-auth/jwt"
+import { getToken } from "next-auth/jwt";
 
 export default async function middleware(request) {
-  // Get the pathname of the request
   const path = request.nextUrl.pathname;
-  
+  console.log(`🌍 Incoming Request Path: ${path}`);
+
   // Get the token using next-auth
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  
-  // Check if the user is authenticated
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET, cookieName: "__Secure-next-auth.session-token", });
+  console.log("🔑 Token Data:", token);
+
   const isAuthenticated = !!token;
-  
-  // Define public paths that don't require authentication
-  const isPublicPath = path === '/' || path === '/login' || path === '/register' || path === "/signup";
-  
-  // Define paths that authenticated users can access without role checks
+  console.log(`✅ Authenticated: ${isAuthenticated}`);
+
+  const isPublicPath = path === '/' || path === '/login' || path === '/register';
   const isCommonAuthPath = path === '/home';
-  
-  // Redirect to login if not authenticated and trying to access protected pages
+
   if (!isAuthenticated && !isPublicPath) {
+    console.log("🚫 Not authenticated, redirecting to /login");
     return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  // Redirect to home if already authenticated but trying to access login/register
+
   if (isAuthenticated && isPublicPath) {
+    console.log("🔄 Already authenticated, redirecting to /home");
     return NextResponse.redirect(new URL('/home', request.url));
   }
-  
-  // Allow access to common authenticated paths without role checks
+
   if (isAuthenticated && isCommonAuthPath) {
+    console.log("✅ Authenticated user accessing a common page");
     return NextResponse.next();
   }
-  
-  // Role-based access control
+
   if (isAuthenticated) {
-    // Admin-only routes
+    console.log(`🛡️ Role-Based Access Check for: ${token.role}`);
+
     if (path.startsWith('/admin-dashboard') || 
         path === '/conference-creation' || 
         path === '/admin-dashboard/create-post') {
       if (token.role !== 'admin') {
+        console.log("⛔ Access Denied: Not an Admin, redirecting to /home");
         return NextResponse.redirect(new URL('/home', request.url));
       }
     }
-    
-    // Author-only routes
+
     if (path.startsWith('/author-dashboard')) {
       if (token.role !== 'author') {
+        console.log("⛔ Access Denied: Not an Author, redirecting to /home");
         return NextResponse.redirect(new URL('/home', request.url));
       }
     }
-    
-    // Reviewer-only routes
+
     if (path.startsWith('/reviewer-dashboard') || path.startsWith('/review-paper')) {
       if (token.role !== 'reviewer') {
+        console.log("⛔ Access Denied: Not a Reviewer, redirecting to /home");
         return NextResponse.redirect(new URL('/home', request.url));
       }
     }
   }
-  
+
+  console.log("✅ Access Granted: Proceeding to next response");
   return NextResponse.next();
 }
 
