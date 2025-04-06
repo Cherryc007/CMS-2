@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import Conference from "@/models/conferenceModel";
+import User from "@/models/userModel";
 import { auth } from "@/auth";
 import { uploadToBlob, validateFileUpload } from "@/lib/blobUtils";
 
@@ -50,6 +51,15 @@ export async function POST(request) {
 
     await connectDB();
     
+    // Get the author's user ID from the database
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "User not found in the database" 
+      }, { status: 404 });
+    }
+    
     // Check if conference exists
     const conference = await Conference.findById(conferenceId);
     if (!conference) {
@@ -69,7 +79,7 @@ export async function POST(request) {
       title,
       abstract,
       conferenceId,
-      author: session.user.id,
+      author: user._id, // Use the MongoDB _id from the user document
       fileUrl: url,
       filePath: pathname,
       status: "Pending"
