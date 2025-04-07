@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
-import Review from "@/models/reviewModel";
 import Conference from "@/models/conferenceModel";
+import Review from "@/models/reviewModel";
 import { auth } from "@/auth";
 
 export async function GET(request) {
@@ -28,7 +28,7 @@ export async function GET(request) {
     .populate({
       path: 'reviews',
       match: { reviewer: session.user.id },
-      select: 'reviewer'
+      select: '_id reviewer'
     })
     .lean();
     
@@ -50,6 +50,12 @@ export async function GET(request) {
         name: paper.reviewer.name
       }] : []
     }));
+    
+    console.log("Formatted papers:", formattedPapers.map(p => ({ 
+      id: p.id, 
+      title: p.title, 
+      hasReview: p.hasReview 
+    })));
     
     return NextResponse.json({ 
       success: true, 

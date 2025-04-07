@@ -3,11 +3,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { FileText, History } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 
 export default function PaperCard({ paper, availableReviewers, onAssignReviewer, onRemoveReviewer }) {
   const [selectedReviewer, setSelectedReviewer] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
   const { data: session } = useSession();
   
   // Check if the current user is the assigned reviewer for this paper
@@ -45,9 +44,8 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           
           {/* Show buttons for reviewers */}
           {session?.user.role === "reviewer" && (
-            isAssignedReviewer || !onAssignReviewer) && (
             <div className="flex flex-col gap-2">
-              {/* Show Review Paper button only if paper hasn't been reviewed */}
+              {/* Show Review Paper button only if paper hasn't been reviewed yet */}
               {!paper.hasReview && (
                 <Link 
                   href={`/review-paper?id=${paper.id}`} 
@@ -63,7 +61,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
                   href={`/review-history?paperId=${paper.id}`}
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
                 >
-                  <History className="w-4 h-4 mr-2" />
+                  <Eye className="w-4 h-4 mr-2" />
                   View My Review
                 </Link>
               )}
