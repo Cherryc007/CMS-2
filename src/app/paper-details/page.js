@@ -265,25 +265,21 @@ function PaperContent({ paperId }) {
                       <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
                         {review.feedback}
                       </p>
-                      {review.fileUrl && (
-                        <div className="mt-3">
+                      <div className="mt-4">
+                        <h4 className="font-semibold mb-2">Review File</h4>
+                        {review.fileUrl ? (
                           <a
                             href={review.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
-                            onClick={(e) => {
-                              if (!review.fileUrl) {
-                                e.preventDefault();
-                                toast.error("No review file available for download");
-                              }
-                            }}
+                            className="text-blue-600 hover:text-blue-800"
                           >
-                            <Download className="w-4 h-4 mr-1" />
                             Download Review File
                           </a>
-                        </div>
-                      )}
+                        ) : (
+                          <p className="text-gray-500">No review file available</p>
+                        )}
+                      </div>
                     </motion.div>
                   ))}
                 </div>

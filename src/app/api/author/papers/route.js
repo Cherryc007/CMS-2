@@ -100,10 +100,16 @@ export async function GET(request) {
       abstract: paper.abstract,
       fileUrl: paper.fileUrl || null,
       filePath: paper.filePath || null,
-      conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
+      author: paper.author ? paper.author.name : "Unknown Author",
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status,
-      hasReviews: paper.reviews && paper.reviews.length > 0,
+      conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
+      hasReviewer: !!paper.reviewer,
+      reviewer: paper.reviewer ? {
+        id: paper.reviewer._id.toString(),
+        name: paper.reviewer.name
+      } : null,
+      reviews: paper.reviews || []
     }));
     
     // Calculate statistics - all zeros if no papers

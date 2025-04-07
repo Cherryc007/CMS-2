@@ -65,7 +65,8 @@ export async function POST(request) {
       feedback,
       rating,
       status,
-      filePath
+      filePath,
+      fileUrl: body.fileUrl
     });
     
     // Update paper status and add review to paper's reviews array

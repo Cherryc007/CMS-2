@@ -19,6 +19,7 @@ function ReviewPaperContent({ paperId }) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePath, setFilePath] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
 
   useEffect(() => {
     // Redirect if user is not a reviewer
@@ -91,6 +92,7 @@ function ReviewPaperContent({ paperId }) {
 
       const data = await response.json();
       setFilePath(data.filePath);
+      setFileUrl(data.fileUrl);
       toast.success("Review file uploaded successfully");
     } catch (error) {
       console.error("Upload error:", error);
@@ -120,7 +122,8 @@ function ReviewPaperContent({ paperId }) {
           feedback,
           rating,
           status: reviewStatus,
-          filePath // Include the filePath if uploaded
+          filePath,
+          fileUrl
         }),
       });
 

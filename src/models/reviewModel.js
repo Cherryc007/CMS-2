@@ -20,6 +20,7 @@ const reviewSchema = new mongoose.Schema({
     required: true
   },
   filePath: { type: String }, // Optional field for uploaded review file
+  fileUrl: { type: String }, // URL for the review file in Vercel Blob
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
