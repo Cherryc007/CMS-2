@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { FileText, Download } from "lucide-react";
 
 export default function PaperCard({ paper, availableReviewers, onAssignReviewer, onRemoveReviewer }) {
   const [selectedReviewer, setSelectedReviewer] = useState("");
@@ -34,10 +35,15 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           </p>
         </div>
         <div className="flex-shrink-0 flex flex-col items-end">
-          <span className="inline-flex items-center px-4 py-2 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-2">
+          <span className={`inline-flex items-center px-4 py-2 rounded-full text-xs font-medium ${
+            paper.status === "Accepted" ? "bg-green-100 text-green-800" :
+            paper.status === "Rejected" ? "bg-red-100 text-red-800" :
+            "bg-yellow-100 text-yellow-800"
+          } mb-2`}>
             {paper.status}
           </span>
-          {/* Show Review Paper button for reviewers */}
+          
+          {/* Show Review Paper and View My Review buttons for reviewers */}
           {session?.user.role === "reviewer" && (
             isAssignedReviewer || !onAssignReviewer) && (
             <div className="flex flex-col gap-2">
@@ -45,6 +51,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
                 href={`/review-paper?id=${paper.id}`} 
                 className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
               >
+                <FileText className="w-4 h-4 mr-2" />
                 Review Paper
               </Link>
               {paper.hasReview && (
@@ -52,11 +59,13 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
                   href={`/review-history?paperId=${paper.id}`}
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
                 >
+                  <Download className="w-4 h-4 mr-2" />
                   View My Review
                 </Link>
               )}
             </div>
           )}
+
           {/* Show View Details button only for non-reviewers */}
           {session?.user.role !== "reviewer" && (
             <Link
@@ -69,28 +78,28 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
         </div>
       </div>
       
-      <div className="mt-4 border-t border-gray-200 pt-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Reviewers:</h4>
-        {(!paper.reviewers || paper.reviewers.length === 0) ? (
-          <p className="text-sm text-gray-500 italic">No reviewers assigned yet</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {paper.reviewers.map(reviewer => (
-              <div key={reviewer.id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
-                <span className="text-xs text-blue-800 mr-1">{reviewer.name}</span>
-                <button 
-                  onClick={() => onRemoveReviewer(paper.id, reviewer.id)}
-                  className="text-xs text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Only show the assign reviewer section for admin users */}
-        {session?.user.role === "admin" && onAssignReviewer && (
+      {/* Admin section for assigning reviewers */}
+      {session?.user.role === "admin" && onAssignReviewer && (
+        <div className="mt-4 border-t border-gray-200 pt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Reviewers:</h4>
+          {(!paper.reviewers || paper.reviewers.length === 0) ? (
+            <p className="text-sm text-gray-500 italic">No reviewers assigned yet</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {paper.reviewers.map(reviewer => (
+                <div key={reviewer.id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
+                  <span className="text-xs text-blue-800 mr-1">{reviewer.name}</span>
+                  <button 
+                    onClick={() => onRemoveReviewer(paper.id, reviewer.id)}
+                    className="text-xs text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <div className="mt-3">
             <div className="flex items-center">
               <select
@@ -120,8 +129,8 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </motion.div>
   );
 } 

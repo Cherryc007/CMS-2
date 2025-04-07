@@ -37,7 +37,13 @@ export async function GET(request) {
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status,
       conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
-      hasReviewed: paper.reviews && paper.reviews.length > 0,
+      hasReview: paper.reviews && paper.reviews.some(review => 
+        review.reviewer && review.reviewer.toString() === session.user.id
+      ),
+      reviewers: paper.reviewer ? [{
+        id: paper.reviewer._id.toString(),
+        name: paper.reviewer.name
+      }] : []
     }));
     
     return NextResponse.json({ 
