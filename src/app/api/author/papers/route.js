@@ -3,6 +3,7 @@ import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
 import Conference from "@/models/conferenceModel";
+import Review from "@/models/reviewModel";
 import { auth } from "@/auth";
 
 export async function GET(request) {
@@ -49,6 +50,7 @@ export async function GET(request) {
         .populate('conferenceId', 'name')
         .populate({
           path: 'reviews',
+          model: Review,
           select: 'feedback rating status fileUrl filePath reviewer',
           populate: {
             path: 'reviewer',
@@ -58,31 +60,63 @@ export async function GET(request) {
         .sort({ createdAt: -1 })
         .lean() || [];
         
-      // Try to populate reviews only if there's a Review model
-      if (papers.length > 0) {
-        try {
-          // Manually handle review population to avoid model errors
-          const Review = require('@/models/reviewModel').default;
-          for (let paper of papers) {
-            if (paper.reviews && paper.reviews.length > 0) {
-              const reviewIds = paper.reviews.map(id => id.toString());
-              const reviews = await Review.find({ 
-                _id: { $in: reviewIds } 
-              }).select('feedback rating status').lean();
-              
-              paper.reviewData = reviews;
-            } else {
-              paper.reviewData = [];
-            }
-          }
-        } catch (reviewError) {
-          console.warn("Unable to populate reviews, they will not be included:", reviewError.message);
-          // Continue without reviews if the model is missing
-          papers.forEach(paper => {
-            paper.reviewData = [];
-          });
-        }
+      console.log(`Found ${papers.length} papers for user ${user._id}`);
+      
+      // If fetching a specific paper and it's not found
+      if (paperId && papers.length === 0) {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Paper not found or you don't have permission to access it" 
+        }, { status: 404 });
       }
+      
+      // Format papers for frontend consumption
+      const formattedPapers = papers.map(paper => ({
+        id: paper._id.toString(),
+        title: paper.title,
+        abstract: paper.abstract,
+        fileUrl: paper.fileUrl || null,
+        filePath: paper.filePath || null,
+        author: paper.author ? paper.author.name : "Unknown Author",
+        submissionDate: new Date(paper.createdAt).toLocaleDateString(),
+        status: paper.status,
+        conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
+        hasReviewer: !!paper.reviewer,
+        reviewer: paper.reviewer ? {
+          id: paper.reviewer._id.toString(),
+          name: paper.reviewer.name
+        } : null,
+        reviews: paper.reviews ? paper.reviews.map(review => ({
+          id: review._id.toString(),
+          feedback: review.feedback,
+          rating: review.rating,
+          status: review.status,
+          fileUrl: review.fileUrl,
+          filePath: review.filePath,
+          reviewer: review.reviewer ? {
+            id: review.reviewer._id.toString(),
+            name: review.reviewer.name
+          } : null
+        })) : []
+      }));
+      
+      // Calculate statistics - all zeros if no papers
+      const stats = {
+        totalSubmissions: papers.length,
+        pending: papers.filter(p => p.status === "Pending").length,
+        underReview: papers.filter(p => p.status === "Under Review").length,
+        accepted: papers.filter(p => p.status === "Accepted").length,
+        rejected: papers.filter(p => p.status === "Rejected").length,
+        resubmitted: papers.filter(p => p.status === "Resubmitted").length,
+        finalSubmitted: papers.filter(p => p.status === "FinalSubmitted").length
+      };
+      
+      return NextResponse.json({ 
+        success: true, 
+        papers: formattedPapers,
+        stats
+      }, { status: 200 });
+      
     } catch (error) {
       console.error("Error in paper fetch query:", error);
       return NextResponse.json({ 
@@ -90,63 +124,6 @@ export async function GET(request) {
         message: `Error querying papers: ${error.message}` 
       }, { status: 500 });
     }
-    
-    console.log(`Found ${papers.length} papers for user ${user._id}`);
-    
-    // If fetching a specific paper and it's not found
-    if (paperId && papers.length === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Paper not found or you don't have permission to access it" 
-      }, { status: 404 });
-    }
-    
-    // Format papers for frontend consumption
-    const formattedPapers = papers.map(paper => ({
-      id: paper._id.toString(),
-      title: paper.title,
-      abstract: paper.abstract,
-      fileUrl: paper.fileUrl || null,
-      filePath: paper.filePath || null,
-      author: paper.author ? paper.author.name : "Unknown Author",
-      submissionDate: new Date(paper.createdAt).toLocaleDateString(),
-      status: paper.status,
-      conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
-      hasReviewer: !!paper.reviewer,
-      reviewer: paper.reviewer ? {
-        id: paper.reviewer._id.toString(),
-        name: paper.reviewer.name
-      } : null,
-      reviews: paper.reviews ? paper.reviews.map(review => ({
-        id: review._id.toString(),
-        feedback: review.feedback,
-        rating: review.rating,
-        status: review.status,
-        fileUrl: review.fileUrl,
-        filePath: review.filePath,
-        reviewer: review.reviewer ? {
-          id: review.reviewer._id.toString(),
-          name: review.reviewer.name
-        } : null
-      })) : []
-    }));
-    
-    // Calculate statistics - all zeros if no papers
-    const stats = {
-      totalSubmissions: papers.length,
-      pending: papers.filter(p => p.status === "Pending").length,
-      underReview: papers.filter(p => p.status === "Under Review").length,
-      accepted: papers.filter(p => p.status === "Accepted").length,
-      rejected: papers.filter(p => p.status === "Rejected").length,
-      resubmitted: papers.filter(p => p.status === "Resubmitted").length,
-      finalSubmitted: papers.filter(p => p.status === "FinalSubmitted").length
-    };
-    
-    return NextResponse.json({ 
-      success: true, 
-      papers: formattedPapers,
-      stats
-    }, { status: 200 });
     
   } catch (error) {
     console.error("Error fetching author papers:", error);
