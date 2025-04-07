@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import Review from "@/models/reviewModel";
+import Conference from "@/models/conferenceModel";
 import { auth } from "@/auth";
 
 export async function GET(request) {
