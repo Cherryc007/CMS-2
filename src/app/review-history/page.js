@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
@@ -7,10 +7,9 @@ import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 
 /**
- * ReviewHistory component displays the review details for a specific paper
- * that was reviewed by the current reviewer
+ * ReviewHistoryContent component that handles the actual review history display
  */
-export default function ReviewHistory() {
+function ReviewHistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -139,5 +138,16 @@ export default function ReviewHistory() {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * Main ReviewHistory component wrapped in Suspense
+ */
+export default function ReviewHistory() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+      <ReviewHistoryContent />
+    </Suspense>
   );
 } 
