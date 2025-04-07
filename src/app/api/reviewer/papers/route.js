@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
-import Conference from "@/models/conferenceModel";
+import Review from "@/models/reviewModel";
 import { auth } from "@/auth";
 
 export async function GET(request) {
@@ -24,6 +24,11 @@ export async function GET(request) {
     })
     .populate('author', 'name email')
     .populate('conferenceId', 'name')
+    .populate({
+      path: 'reviews',
+      match: { reviewer: session.user.id },
+      select: 'reviewer'
+    })
     .lean();
     
     // Format papers for frontend consumption
@@ -37,9 +42,8 @@ export async function GET(request) {
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status,
       conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
-      hasReview: paper.reviews && paper.reviews.some(review => 
-        review.reviewer && review.reviewer.toString() === session.user.id
-      ),
+      // Set hasReview to true if there's a review by the current reviewer
+      hasReview: paper.reviews && paper.reviews.length > 0,
       reviewers: paper.reviewer ? [{
         id: paper.reviewer._id.toString(),
         name: paper.reviewer.name

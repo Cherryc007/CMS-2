@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { FileText, Download } from "lucide-react";
+import { FileText, History } from "lucide-react";
 
 export default function PaperCard({ paper, availableReviewers, onAssignReviewer, onRemoveReviewer }) {
   const [selectedReviewer, setSelectedReviewer] = useState("");
@@ -43,23 +43,27 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
             {paper.status}
           </span>
           
-          {/* Show Review Paper and View My Review buttons for reviewers */}
+          {/* Show buttons for reviewers */}
           {session?.user.role === "reviewer" && (
             isAssignedReviewer || !onAssignReviewer) && (
             <div className="flex flex-col gap-2">
-              <Link 
-                href={`/review-paper?id=${paper.id}`} 
-                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Review Paper
-              </Link>
+              {/* Show Review Paper button only if paper hasn't been reviewed */}
+              {!paper.hasReview && (
+                <Link 
+                  href={`/review-paper?id=${paper.id}`} 
+                  className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Review Paper
+                </Link>
+              )}
+              {/* Show View My Review button only if paper has been reviewed */}
               {paper.hasReview && (
                 <Link 
                   href={`/review-history?paperId=${paper.id}`}
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <History className="w-4 h-4 mr-2" />
                   View My Review
                 </Link>
               )}
