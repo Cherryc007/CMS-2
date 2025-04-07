@@ -47,6 +47,14 @@ export async function GET(request) {
       papers = await Paper.find(query)
         .populate('reviewer', 'name email')
         .populate('conferenceId', 'name')
+        .populate({
+          path: 'reviews',
+          select: 'feedback rating status fileUrl filePath reviewer',
+          populate: {
+            path: 'reviewer',
+            select: 'name email'
+          }
+        })
         .sort({ createdAt: -1 })
         .lean() || [];
         
@@ -109,7 +117,18 @@ export async function GET(request) {
         id: paper.reviewer._id.toString(),
         name: paper.reviewer.name
       } : null,
-      reviews: paper.reviews || []
+      reviews: paper.reviews ? paper.reviews.map(review => ({
+        id: review._id.toString(),
+        feedback: review.feedback,
+        rating: review.rating,
+        status: review.status,
+        fileUrl: review.fileUrl,
+        filePath: review.filePath,
+        reviewer: review.reviewer ? {
+          id: review.reviewer._id.toString(),
+          name: review.reviewer.name
+        } : null
+      })) : []
     }));
     
     // Calculate statistics - all zeros if no papers
