@@ -37,19 +37,33 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           <span className="inline-flex items-center px-4 py-2 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-2">
             {paper.status}
           </span>
-          {/* Only show Review Paper button for:
-              1. Users who are not admins AND
-              2. Users who are either:
-                 - The assigned reviewer for this paper OR
-                 - Using the component in the reviewer dashboard (where only assigned papers are shown)
-          */}
+          {/* Show Review Paper button for reviewers */}
           {session?.user.role === "reviewer" && (
             isAssignedReviewer || !onAssignReviewer) && (
-            <Link 
-              href={`/review-paper?id=${paper.id}`} 
-              className="mt-2 inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+            <div className="flex flex-col gap-2">
+              <Link 
+                href={`/review-paper?id=${paper.id}`} 
+                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              >
+                Review Paper
+              </Link>
+              {paper.hasReview && (
+                <Link 
+                  href={`/review-history?paperId=${paper.id}`}
+                  className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
+                >
+                  View My Review
+                </Link>
+              )}
+            </div>
+          )}
+          {/* Show View Details button only for non-reviewers */}
+          {session?.user.role !== "reviewer" && (
+            <Link
+              href={`/paper-details?id=${paper.id}`}
+              className="mt-2 inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
             >
-              Review Paper
+              View Details
             </Link>
           )}
         </div>
