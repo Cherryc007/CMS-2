@@ -71,7 +71,16 @@ export async function POST(request) {
     
     // Update paper status and add review to paper's reviews array
     paper.reviews.push(review._id);
-    paper.status = status;
+    
+    // Update paper status based on review status
+    if (status === "Accepted") {
+      paper.status = "Accepted";
+    } else if (status === "Rejected") {
+      paper.status = "Rejected";
+    } else if (status === "Request Resubmission") {
+      paper.status = "RequestResubmit";
+    }
+    
     await paper.save();
     
     // Send email notifications

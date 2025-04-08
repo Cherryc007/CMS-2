@@ -100,6 +100,12 @@ function ReviewHistoryContent() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Paper Details</h2>
             <p className="text-gray-600">{review.paperTitle}</p>
+            <p className="text-sm text-gray-500 mt-1">Current Status: {review.paperStatus}</p>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Review Details</h2>
+            <p className="text-sm text-gray-500">Submitted on: {new Date(review.submittedAt).toLocaleDateString()}</p>
           </div>
 
           <div>
@@ -109,7 +115,21 @@ function ReviewHistoryContent() {
 
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Rating</h2>
-            <p className="text-gray-600">{review.rating} / 5</p>
+            <div className="flex items-center">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    className={`text-2xl ${
+                      i < review.rating ? "text-yellow-400" : "text-gray-300"
+                    }`}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="ml-2 text-gray-600">({review.rating}/5)</span>
+            </div>
           </div>
 
           <div>

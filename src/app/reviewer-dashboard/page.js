@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Clock, CheckCircle, XCircle } from "lucide-react";
+import { FileText, Download, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
 
 function ReviewerDashboardContent() {
   const router = useRouter();
@@ -45,7 +45,7 @@ function ReviewerDashboardContent() {
       
       // Calculate statistics
       const total = data.papers.length;
-      const reviewed = data.papers.filter(p => p.hasReviewed).length;
+      const reviewed = data.papers.filter(p => p.hasReview).length;
       const pending = total - reviewed;
       
       setStats({
@@ -219,13 +219,22 @@ function ReviewerDashboardContent() {
                         Download Paper
                       </Button>
                       
-                      {!paper.hasReviewed && (
+                      {!paper.hasReview && (
                         <Button
                           onClick={() => router.push(`/review-paper?id=${paper.id}`)}
                           className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Review
+                        </Button>
+                      )}
+                      {paper.hasReview && (
+                        <Button
+                          onClick={() => router.push(`/review-history?paperId=${paper.id}`)}
+                          className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Review
                         </Button>
                       )}
                     </div>

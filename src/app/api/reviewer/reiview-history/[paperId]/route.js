@@ -32,9 +32,9 @@ export async function GET(request, { params }) {
       .populate({
         path: 'reviews',
         match: { reviewer: session.user.id },
-        select: 'feedback rating status fileUrl filePath reviewer'
+        select: 'feedback rating status fileUrl filePath reviewer createdAt'
       })
-      .select('title')
+      .select('title status')
       .lean();
     
     if (!paper) {
@@ -58,11 +58,13 @@ export async function GET(request, { params }) {
     const formattedReview = {
       id: review._id.toString(),
       paperTitle: paper.title,
+      paperStatus: paper.status,
       feedback: review.feedback,
       rating: review.rating,
       status: review.status,
       fileUrl: review.fileUrl,
-      filePath: review.filePath
+      filePath: review.filePath,
+      submittedAt: review.createdAt
     };
     
     return NextResponse.json({ 
