@@ -218,7 +218,9 @@ function ReviewerDashboardContent() {
                         <Download className="w-4 h-4 mr-2" />
                         Download Paper
                       </Button>
-                      
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
                       {!paper.hasReview && (
                         <Button
                           onClick={() => router.push(`/review-paper?id=${paper.id}`)}
@@ -231,21 +233,21 @@ function ReviewerDashboardContent() {
                       {paper.hasReview && (
                         <Button
                           onClick={() => router.push(`/review-history?paperId=${paper.id}`)}
-                          className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                          className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded"
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           View Review
                         </Button>
                       )}
+                      
+                      <Button
+                        onClick={() => router.push(`/paper-details?id=${paper.id}`)}
+                        variant="outline"
+                        className="inline-flex items-center"
+                      >
+                        View Details
+                      </Button>
                     </div>
-                    
-                    <Button
-                      onClick={() => router.push(`/paper-details?id=${paper.id}`)}
-                      variant="outline"
-                      className="inline-flex items-center"
-                    >
-                      View Details
-                    </Button>
                   </div>
                 </div>
               </motion.div>

@@ -59,7 +59,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
               {paper.hasReview && (
                 <Link 
                   href={`/review-history?paperId=${paper.id}`}
-                  className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-md text-white bg-indigo-500 hover:bg-indigo-600"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View My Review
