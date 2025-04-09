@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { FileText, Eye } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import AdminPaperActions from "./AdminPaperActions";
 
 export default function PaperCard({ paper, availableReviewers, onAssignReviewer, onRemoveReviewer }) {
@@ -43,9 +42,9 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
             <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
               {paper.title}
             </h3>
-            <Badge className={getStatusColor(paper.status)}>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(paper.status)}`}>
               {paper.status}
-            </Badge>
+            </span>
           </div>
 
           <div className="space-y-2 mb-4">
