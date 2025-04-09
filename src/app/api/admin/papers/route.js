@@ -18,8 +18,9 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    // Verify user exists and has admin role in database
     await connectDB();
+
+    // Verify user exists and has admin role
     const user = await User.findOne({ 
       email: session.user.email 
     });
@@ -31,8 +32,8 @@ export async function GET(request) {
       }, { status: 403 });
     }
 
-    // Get all papers except those with FinalSubmitted status
-    const papers = await Paper.find({})
+    // Get all papers with their relationships
+    const papers = await Paper.find()
       .populate('author', 'name email')
       .populate('conferenceId', 'name startDate endDate')
       .populate('reviewers', 'name email')
@@ -47,56 +48,72 @@ export async function GET(request) {
 
     console.log(`Admin ${user.email} fetched ${papers.length} papers`);
 
-    // Get all users with reviewer role
+    // Get all active reviewers
     const reviewers = await User.find({ 
       role: "reviewer",
-      isActive: true // Only get active reviewers
-    }, 'name email');
+      isActive: true 
+    }).select('name email').lean();
 
-    // Format the response
+    console.log(`Found ${reviewers.length} active reviewers`);
+
+    // Format papers for response
     const formattedPapers = papers.map(paper => ({
-      _id: paper._id,
+      _id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
       status: paper.status,
       fileUrl: paper.fileUrl,
       submittedAt: paper.submittedAt,
-      author: {
-        _id: paper.author?._id,
-        name: paper.author?.name,
-        email: paper.author?.email
-      },
-      conference: {
-        _id: paper.conferenceId?._id,
-        name: paper.conferenceId?.name,
-        startDate: paper.conferenceId?.startDate,
-        endDate: paper.conferenceId?.endDate
-      },
-      reviewers: paper.reviewers?.map(reviewer => ({
-        _id: reviewer._id,
+      author: paper.author ? {
+        _id: paper.author._id.toString(),
+        name: paper.author.name,
+        email: paper.author.email
+      } : null,
+      conference: paper.conferenceId ? {
+        _id: paper.conferenceId._id.toString(),
+        name: paper.conferenceId.name,
+        startDate: paper.conferenceId.startDate,
+        endDate: paper.conferenceId.endDate
+      } : null,
+      reviewers: (paper.reviewers || []).map(reviewer => ({
+        _id: reviewer._id.toString(),
         name: reviewer.name,
         email: reviewer.email
-      })) || [],
-      reviews: paper.reviews?.map(review => ({
-        _id: review._id,
-        reviewer: {
-          _id: review.reviewer?._id,
-          name: review.reviewer?.name,
-          email: review.reviewer?.email
-        },
+      })),
+      reviews: (paper.reviews || []).map(review => ({
+        _id: review._id.toString(),
+        reviewer: review.reviewer ? {
+          _id: review.reviewer._id.toString(),
+          name: review.reviewer.name,
+          email: review.reviewer.email
+        } : null,
         status: review.status,
         submittedAt: review.submittedAt
-      })) || []
+      }))
     }));
+
+    // Format reviewers for response
+    const formattedReviewers = reviewers.map(reviewer => ({
+      _id: reviewer._id.toString(),
+      name: reviewer.name,
+      email: reviewer.email
+    }));
+
+    // Calculate statistics
+    const stats = {
+      totalPapers: papers.length,
+      underReview: papers.filter(p => p.status === "Under Review").length,
+      accepted: papers.filter(p => p.status === "Accepted").length,
+      rejected: papers.filter(p => p.status === "Rejected").length,
+      revisionRequired: papers.filter(p => p.status === "Revision Required").length,
+      pendingAssignment: papers.filter(p => p.status === "Pending").length
+    };
 
     return NextResponse.json({ 
       success: true,
       papers: formattedPapers,
-      reviewers: reviewers.map(reviewer => ({
-        _id: reviewer._id,
-        name: reviewer.name,
-        email: reviewer.email
-      }))
+      reviewers: formattedReviewers,
+      stats
     }, { status: 200 });
     
   } catch (error) {
