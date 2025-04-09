@@ -48,11 +48,11 @@ export default function AdminDashboard() {
         throw new Error(data.message || "Failed to fetch data");
       }
 
-      setPapers(data.papers);
-      setFilteredPapers(data.papers);
-      setReviewers(data.reviewers);
-      setConferences(data.conferences);
-      updateStats(data.papers);
+      setPapers(data.papers || []);
+      setFilteredPapers(data.papers || []);
+      setReviewers(data.reviewers || []);
+      setConferences(data.conferences || []);
+      updateStats(data.papers || []);
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -120,15 +120,15 @@ export default function AdminDashboard() {
   };
 
   const handleViewDetails = (paperId) => {
-    router.push(`/paper-details?id=${paperId}`);
+    router.push(`/admin/paper-details?id=${paperId}`);
   };
 
   const handleViewAuthor = (authorId) => {
-    router.push(`/user-details?id=${authorId}`);
+    router.push(`/admin/user-details?id=${authorId}`);
   };
 
   const handleViewReviews = (paperId) => {
-    router.push(`/paper-reviews?id=${paperId}`);
+    router.push(`/admin/paper-reviews?id=${paperId}`);
   };
 
   const handleAssignReviewer = async (paperId, reviewerId) => {
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500"
+          className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500"
         >
           <h2 className="text-gray-500 text-sm">Total Papers</h2>
           <p className="text-2xl font-bold text-gray-900">{stats.totalPapers}</p>
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500"
+          className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500"
         >
           <h2 className="text-gray-500 text-sm">Under Review</h2>
           <p className="text-2xl font-bold text-gray-900">{stats.underReview}</p>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white p-6 rounded-lg shadow border-l-4 border-gray-500"
+          className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-500"
         >
           <h2 className="text-gray-500 text-sm">Pending</h2>
           <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
@@ -274,7 +274,7 @@ export default function AdminDashboard() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500"
+          className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500"
         >
           <h2 className="text-gray-500 text-sm">Accepted</h2>
           <p className="text-2xl font-bold text-gray-900">{stats.accepted}</p>
@@ -300,30 +300,29 @@ export default function AdminDashboard() {
           </p>
         </motion.div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-3">
           {filteredPapers.map((paper, index) => (
             <motion.div
               key={paper.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow overflow-hidden"
+              className="bg-white rounded-lg shadow-sm hover:shadow transition-shadow duration-200"
             >
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <div className="p-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-medium text-gray-900 truncate">
                       {paper.title}
                     </h2>
-                    <p className="text-sm text-gray-600">
-                      By {paper.author} • {paper.conference}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Submitted on {paper.submissionDate}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
+                      <span className="truncate">By {paper.author}</span>
+                      <span>•</span>
+                      <span className="truncate">{paper.conference}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       paper.status === "Accepted" ? "bg-green-100 text-green-800" :
                       paper.status === "Rejected" ? "bg-red-100 text-red-800" :
                       paper.status === "Under Review" ? "bg-yellow-100 text-yellow-800" :
@@ -334,7 +333,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 
-                <div className="mt-4 flex justify-between items-center">
+                <div className="mt-2 flex justify-between items-center">
                   <AdminPaperActions
                     paper={paper}
                     onDownload={handleDownload}
