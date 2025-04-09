@@ -7,6 +7,8 @@ import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { FileCheck, Clock, FileX, RefreshCcw } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -19,8 +21,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalPapers: 0,
     underReview: 0,
-    pending: 0,
     accepted: 0,
+    rejected: 0,
+    pendingReviews: 0
   });
 
   useEffect(() => {
@@ -77,28 +80,32 @@ export default function AdminDashboard() {
   const updateStats = (papers) => {
     const totalPapers = papers.length;
     const underReview = papers.filter(p => p.status === "Under Review").length;
-    const pending = papers.filter(p => p.status === "Pending").length;
     const accepted = papers.filter(p => p.status === "Accepted").length;
+    const rejected = papers.filter(p => p.status === "Rejected").length;
+    const pendingReviews = papers.filter(p => p.status === "Pending Review").length;
 
     setStats({
       totalPapers,
       underReview,
-      pending,
       accepted,
+      rejected,
+      pendingReviews,
     });
   };
 
   const updateConferenceStats = (papers) => {
     const totalPapers = papers.length;
     const underReview = papers.filter(p => p.status === "Under Review").length;
-    const pending = papers.filter(p => p.status === "Pending").length;
     const accepted = papers.filter(p => p.status === "Accepted").length;
+    const rejected = papers.filter(p => p.status === "Rejected").length;
+    const pendingReviews = papers.filter(p => p.status === "Pending Review").length;
 
     setStats({
       totalPapers,
       underReview,
-      pending,
       accepted,
+      rejected,
+      pendingReviews,
     });
   };
 
@@ -177,7 +184,7 @@ export default function AdminDashboard() {
       setStats({
         ...stats,
         underReview: stats.underReview + 1,
-        pending: stats.pending - 1,
+        pendingReviews: stats.pendingReviews - 1,
       });
 
     } catch (error) {
@@ -220,7 +227,7 @@ export default function AdminDashboard() {
       setStats({
         ...stats,
         underReview: stats.underReview - 1,
-        pending: stats.pending + 1,
+        pendingReviews: stats.pendingReviews + 1,
       });
 
     } catch (error) {
@@ -300,22 +307,57 @@ export default function AdminDashboard() {
           
           {/* Statistics */}
           <div className="flex flex-wrap gap-4">
-            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-blue-500">
-              <span className="text-gray-500 text-sm">Total Papers</span>
-              <p className="text-lg font-bold text-gray-900">{stats.totalPapers}</p>
-            </div>
-            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-yellow-500">
-              <span className="text-gray-500 text-sm">Under Review</span>
-              <p className="text-lg font-bold text-gray-900">{stats.underReview}</p>
-            </div>
-            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-gray-500">
-              <span className="text-gray-500 text-sm">Pending</span>
-              <p className="text-lg font-bold text-gray-900">{stats.pending}</p>
-            </div>
-            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-green-500">
-              <span className="text-gray-500 text-sm">Accepted</span>
-              <p className="text-lg font-bold text-gray-900">{stats.accepted}</p>
-            </div>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Papers</p>
+                  <p className="text-2xl font-bold">{stats.totalPapers}</p>
+                </div>
+                <FileCheck className="h-8 w-8 text-blue-500" />
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Under Review</p>
+                  <p className="text-2xl font-bold">{stats.underReview}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-500" />
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Accepted</p>
+                  <p className="text-2xl font-bold">{stats.accepted}</p>
+                </div>
+                <FileCheck className="h-8 w-8 text-green-500" />
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Rejected</p>
+                  <p className="text-2xl font-bold">{stats.rejected}</p>
+                </div>
+                <FileX className="h-8 w-8 text-red-500" />
+              </div>
+            </Card>
+            <Card className="p-4 relative group">
+              <Link href="/admin/review-approval" className="absolute inset-0" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Pending Reviews</p>
+                  <p className="text-2xl font-bold">{stats.pendingReviews}</p>
+                </div>
+                <RefreshCcw className="h-8 w-8 text-purple-500" />
+              </div>
+              {stats.pendingReviews > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {stats.pendingReviews}
+                </span>
+              )}
+            </Card>
           </div>
         </div>
       </div>

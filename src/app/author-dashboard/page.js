@@ -15,6 +15,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/alert";
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
 
 export default function AuthorDashboard() {
   const router = useRouter();
@@ -125,17 +127,15 @@ export default function AuthorDashboard() {
   const getStatusColor = (status) => {
     switch (status) {
       case "Pending":
-        return "text-blue-500";
+        return "text-gray-500";
       case "Under Review":
         return "text-yellow-500";
+      case "Revision Required":
+        return "text-orange-500";
       case "Accepted":
         return "text-green-500";
       case "Rejected":
         return "text-red-500";
-      case "Resubmitted":
-        return "text-purple-500";
-      case "FinalSubmitted":
-        return "text-teal-500";
       default:
         return "text-gray-500";
     }
@@ -144,19 +144,17 @@ export default function AuthorDashboard() {
   const getStatusIcon = (status) => {
     switch (status) {
       case "Pending":
-        return <FileText className="w-4 h-4" />;
+        return <Clock className="h-5 w-5" />;
       case "Under Review":
-        return <Clock className="w-4 h-4" />;
+        return <RefreshCw className="h-5 w-5" />;
+      case "Revision Required":
+        return <FileText className="h-5 w-5" />;
       case "Accepted":
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircle className="h-5 w-5" />;
       case "Rejected":
-        return <XCircle className="w-4 h-4" />;
-      case "Resubmitted":
-        return <RefreshCw className="w-4 h-4" />;
-      case "FinalSubmitted":
-        return <CheckCircle className="w-4 h-4" />;
+        return <XCircle className="h-5 w-5" />;
       default:
-        return <AlertTriangle className="w-4 h-4" />;
+        return <Clock className="h-5 w-5" />;
     }
   };
 
@@ -200,13 +198,9 @@ export default function AuthorDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Author Dashboard
           </h1>
-          <Button
-            onClick={() => setShowPaperForm(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Submit New Paper
-          </Button>
+          <Link href="/submit-paper">
+            <Button>Submit New Paper</Button>
+          </Link>
         </motion.div>
 
         {error && (

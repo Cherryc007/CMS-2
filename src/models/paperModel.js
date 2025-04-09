@@ -23,26 +23,33 @@ const paperSchema = new mongoose.Schema({
         ref: 'Conference',
         required: [true, "Conference is required"]
     },
-    reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reviewers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    reviews: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Review'
+    }],
     status: {
         type: String,
-        enum: ['Pending', 'Under Review', 'Accepted', 'Rejected', 'Resubmitted', 'RequestResubmit', 'FinalSubmitted'],
+        required: true,
+        enum: [
+            'Pending',
+            'Under Review',
+            'Revision Required',
+            'Accepted',
+            'Rejected'
+        ],
         default: 'Pending'
     },
-    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }], // ✅ Store multiple reviews
-    resubmissionHistory: [{
-        version: Number,
-        fileUrl: String,
-        filePath: String,
-        submittedAt: {
-            type: Date,
-            default: Date.now
-        },
-        feedback: String
-    }],
-    currentVersion: {
-        type: Number,
-        default: 1
+    submittedAt: {
+        type: Date,
+        default: Date.now
+    },
+    lastUpdated: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true
@@ -50,8 +57,13 @@ const paperSchema = new mongoose.Schema({
 
 // Add index for faster queries
 paperSchema.index({ author: 1, status: 1 });
-paperSchema.index({ reviewer: 1, status: 1 });
 paperSchema.index({ conferenceId: 1 });
+
+// Pre-save middleware to update lastUpdated
+paperSchema.pre('save', function(next) {
+    this.lastUpdated = new Date();
+    next();
+});
 
 const Paper = mongoose.models.Paper || mongoose.model("Paper", paperSchema);
 export default Paper;
