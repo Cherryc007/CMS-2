@@ -22,7 +22,7 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
   const handleConferenceSelect = (conference) => {
     setSelectedConference(conference);
     setIsOpen(false);
-    onFilterChange(conference._id);
+    onFilterChange(conference);
   };
 
   const handleClearFilter = () => {
@@ -31,12 +31,12 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between gap-2 min-w-[200px] bg-white relative z-10"
+          className="flex items-center justify-between gap-2 min-w-[200px] bg-white"
         >
           <span className="truncate">
             {selectedConference ? selectedConference.name : "Filter by Conference"}
@@ -59,7 +59,10 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200 z-[100]">
+        <div 
+          className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200"
+          style={{ zIndex: 1000 }}
+        >
           <div className="max-h-60 overflow-auto">
             {conferences.map((conference) => (
               <button

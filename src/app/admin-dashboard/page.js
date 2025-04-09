@@ -277,131 +277,63 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
       
-      {/* Conference Filter */}
-      <div className="mb-6">
-        <ConferenceFilter
-          conferences={conferences}
-          onFilterChange={handleConferenceFilter}
-          onClearFilter={handleClearFilter}
-        />
+      {/* Conference Filter and Stats Container */}
+      <div className="relative z-50 mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <ConferenceFilter
+            conferences={conferences}
+            onFilterChange={handleConferenceFilter}
+            onClearFilter={handleClearFilter}
+          />
+          
+          {/* Statistics */}
+          <div className="flex flex-wrap gap-4">
+            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-blue-500">
+              <span className="text-gray-500 text-sm">Total Papers</span>
+              <p className="text-lg font-bold text-gray-900">{stats.totalPapers}</p>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-yellow-500">
+              <span className="text-gray-500 text-sm">Under Review</span>
+              <p className="text-lg font-bold text-gray-900">{stats.underReview}</p>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-gray-500">
+              <span className="text-gray-500 text-sm">Pending</span>
+              <p className="text-lg font-bold text-gray-900">{stats.pending}</p>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-lg shadow-sm border-l-4 border-green-500">
+              <span className="text-gray-500 text-sm">Accepted</span>
+              <p className="text-lg font-bold text-gray-900">{stats.accepted}</p>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500"
-        >
-          <h2 className="text-gray-500 text-sm">Total Papers</h2>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalPapers}</p>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500"
-        >
-          <h2 className="text-gray-500 text-sm">Under Review</h2>
-          <p className="text-2xl font-bold text-gray-900">{stats.underReview}</p>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-500"
-        >
-          <h2 className="text-gray-500 text-sm">Pending</h2>
-          <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500"
-        >
-          <h2 className="text-gray-500 text-sm">Accepted</h2>
-          <p className="text-2xl font-bold text-gray-900">{stats.accepted}</p>
-        </motion.div>
-      </div>
-      
+
       {/* Papers List */}
-      <h2 className="text-xl font-semibold mb-4 text-gray-900">
-        {selectedConference ? `${selectedConference.name} Papers` : "All Papers"}
-      </h2>
-      
-      {filteredPapers.length === 0 ? (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white rounded-lg shadow p-8 text-center"
-        >
-          <p className="text-gray-600">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <h2 className="text-xl font-semibold p-4 border-b border-gray-200">
+          {selectedConference ? `${selectedConference.name} Papers` : "All Papers"}
+        </h2>
+        
+        {filteredPapers.length === 0 ? (
+          <div className="p-8 text-center text-gray-600">
             {selectedConference 
               ? "No papers found for this conference" 
               : "No papers found"}
-          </p>
-        </motion.div>
-      ) : (
-        <div className="grid gap-3">
-          {filteredPapers.map((paper, index) => (
-            <motion.div
-              key={paper._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-sm hover:shadow transition-shadow duration-200"
-            >
-              <div className="p-3">
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-base font-medium text-gray-900 truncate">
-                      {paper.title}
-                    </h2>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
-                      <span className="truncate">By {paper.author?.name}</span>
-                      <span>•</span>
-                      <span className="truncate">{paper.conferenceId?.name}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      paper.status === "Accepted" ? "bg-green-100 text-green-800" :
-                      paper.status === "Rejected" ? "bg-red-100 text-red-800" :
-                      paper.status === "Under Review" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {paper.status}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-2 flex justify-between items-center">
-                  <AdminPaperActions
-                    paper={paper}
-                    onDownload={handleDownload}
-                    onViewDetails={handleViewDetails}
-                    onViewAuthor={handleViewAuthor}
-                    onViewReviews={handleViewReviews}
-                  />
-                  
-                  <PaperCard
-                    paper={paper}
-                    availableReviewers={reviewers}
-                    onAssignReviewer={handleAssignReviewer}
-                    onRemoveReviewer={handleRemoveReviewer}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {filteredPapers.map((paper) => (
+              <PaperCard
+                key={paper._id}
+                paper={paper}
+                availableReviewers={reviewers}
+                onAssignReviewer={handleAssignReviewer}
+                onRemoveReviewer={handleRemoveReviewer}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
