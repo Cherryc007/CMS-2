@@ -3,7 +3,7 @@ import connectDB from "@/lib/connectDB";
 import Review from "@/models/reviewModel";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
-import { sendEmail } from "@/lib/mailUtils";
+import nodemailer from "nodemailer";
 import { auth } from "@/auth";
 
 export async function POST(request) {
@@ -57,9 +57,21 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
+    // Configure nodemailer
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+
     // Send email to admins
     const adminEmailContent = {
-      to: adminEmails,
+      from: process.env.SMTP_FROM,
+      to: adminEmails.join(', '),
       subject: `New Review Submission for Paper: ${review.paper.title}`,
       html: `
         <h2>New Review Submission Requires Your Approval</h2>
@@ -80,6 +92,7 @@ export async function POST(request) {
 
     // Send email to reviewer
     const reviewerEmailContent = {
+      from: process.env.SMTP_FROM,
       to: review.reviewer.email,
       subject: `Review Submission Confirmation - ${review.paper.title}`,
       html: `
@@ -97,8 +110,8 @@ export async function POST(request) {
 
     // Send emails
     await Promise.all([
-      sendEmail(adminEmailContent),
-      sendEmail(reviewerEmailContent)
+      transporter.sendMail(adminEmailContent),
+      transporter.sendMail(reviewerEmailContent)
     ]);
 
     return NextResponse.json({ 
