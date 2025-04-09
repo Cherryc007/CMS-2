@@ -16,7 +16,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/alert";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 
 export default function AuthorDashboard() {
   const router = useRouter();

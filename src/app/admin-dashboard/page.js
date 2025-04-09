@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { FileCheck, Clock, FileX, RefreshCcw } from "lucide-react";
 
 export default function AdminDashboard() {
