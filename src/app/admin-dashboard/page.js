@@ -29,7 +29,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (selectedConference) {
-      const filtered = papers.filter(paper => paper.conferenceId?.toString() === selectedConference.id?.toString());
+      const filtered = papers.filter(
+        paper => paper.conferenceId?._id === selectedConference._id
+      );
       setFilteredPapers(filtered);
       updateConferenceStats(filtered);
     } else {
@@ -48,15 +50,25 @@ export default function AdminDashboard() {
         throw new Error(data.message || "Failed to fetch data");
       }
 
-      setPapers(data.papers || []);
-      setFilteredPapers(data.papers || []);
+      // Ensure we have all required data
+      if (!data.papers || !Array.isArray(data.papers)) {
+        throw new Error("Invalid papers data received");
+      }
+
+      setPapers(data.papers);
+      setFilteredPapers(data.papers);
       setReviewers(data.reviewers || []);
       setConferences(data.conferences || []);
-      updateStats(data.papers || []);
+      updateStats(data.papers);
 
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to load data");
+      toast.error(error.message || "Failed to load data");
+      // Set empty arrays as fallback
+      setPapers([]);
+      setFilteredPapers([]);
+      setReviewers([]);
+      setConferences([]);
     } finally {
       setIsLoading(false);
     }
@@ -278,7 +290,7 @@ export default function AdminDashboard() {
       </div>
       
       {/* Conference Filter and Stats Container */}
-      <div className="relative z-50 mb-6">
+      <div className="relative z-[100] mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <ConferenceFilter
             conferences={conferences}

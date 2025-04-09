@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Download, Eye, Users, FileText } from "lucide-react";
+import { Download, Eye, FileText } from "lucide-react";
 
 const AdminPaperActions = ({ paper }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -18,21 +18,16 @@ const AdminPaperActions = ({ paper }) => {
         return;
       }
 
-      // First try to get a download URL if it's a blob URL
       let downloadUrl = paper.fileUrl;
       if (paper.fileUrl.startsWith('blob:')) {
         const response = await fetch(`/api/papers/${paper._id}/download`);
-        if (!response.ok) {
-          throw new Error("Failed to get download URL");
-        }
+        if (!response.ok) throw new Error("Failed to get download URL");
         const data = await response.json();
         downloadUrl = data.downloadUrl;
       }
 
       const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        throw new Error("Failed to download file");
-      }
+      if (!response.ok) throw new Error("Failed to download file");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -62,19 +57,6 @@ const AdminPaperActions = ({ paper }) => {
     } catch (error) {
       console.error("Navigation error:", error);
       toast.error("Failed to view paper details");
-    }
-  };
-
-  const handleViewAuthors = () => {
-    try {
-      if (!paper?.author?._id) {
-        toast.error("Author information not available");
-        return;
-      }
-      router.push(`/admin/authors/${paper.author._id}`);
-    } catch (error) {
-      console.error("Navigation error:", error);
-      toast.error("Failed to view author details");
     }
   };
 
@@ -113,17 +95,6 @@ const AdminPaperActions = ({ paper }) => {
       >
         <Eye className="w-4 h-4" />
         View Details
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleViewAuthors}
-        disabled={!paper?.author?._id}
-        className="flex items-center gap-2 min-w-[120px]"
-      >
-        <Users className="w-4 h-4" />
-        View Authors
       </Button>
 
       <Button

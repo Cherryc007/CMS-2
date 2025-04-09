@@ -31,7 +31,7 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
   };
 
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -60,23 +60,40 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
 
       {isOpen && (
         <div 
-          className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200"
-          style={{ zIndex: 1000 }}
+          className="fixed inset-0 z-50"
+          onClick={() => setIsOpen(false)}
         >
-          <div className="max-h-60 overflow-auto">
-            {conferences.map((conference) => (
-              <button
-                key={conference._id}
-                onClick={() => handleConferenceSelect(conference)}
-                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
-                  selectedConference?._id === conference._id
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700"
-                }`}
-              >
-                {conference.name}
-              </button>
-            ))}
+          <div
+            className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200"
+            style={{ 
+              zIndex: 1000,
+              position: 'absolute',
+              top: '100%',
+              width: '200px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-h-60 overflow-auto">
+              {conferences?.length > 0 ? (
+                conferences.map((conference) => (
+                  <button
+                    key={conference._id}
+                    onClick={() => handleConferenceSelect(conference)}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
+                      selectedConference?._id === conference._id
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {conference.name}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  No conferences available
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
