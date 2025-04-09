@@ -18,7 +18,18 @@ const AdminPaperActions = ({ paper }) => {
         return;
       }
 
-      const response = await fetch(paper.fileUrl);
+      // First try to get a download URL if it's a blob URL
+      let downloadUrl = paper.fileUrl;
+      if (paper.fileUrl.startsWith('blob:')) {
+        const response = await fetch(`/api/papers/${paper._id}/download`);
+        if (!response.ok) {
+          throw new Error("Failed to get download URL");
+        }
+        const data = await response.json();
+        downloadUrl = data.downloadUrl;
+      }
+
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         throw new Error("Failed to download file");
       }
@@ -27,7 +38,7 @@ const AdminPaperActions = ({ paper }) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${paper.title.replace(/\s+/g, "_")}.pdf`;
+      a.download = `${paper.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -35,34 +46,49 @@ const AdminPaperActions = ({ paper }) => {
       toast.success("Paper downloaded successfully");
     } catch (error) {
       console.error("Download error:", error);
-      toast.error("Failed to download paper");
+      toast.error(error.message || "Failed to download paper");
     } finally {
       setIsDownloading(false);
     }
   };
 
   const handleViewDetails = () => {
-    if (!paper?._id) {
-      toast.error("Paper ID not found");
-      return;
+    try {
+      if (!paper?._id) {
+        toast.error("Paper ID not found");
+        return;
+      }
+      router.push(`/admin/papers/${paper._id}`);
+    } catch (error) {
+      console.error("Navigation error:", error);
+      toast.error("Failed to view paper details");
     }
-    router.push(`/admin/paper-details/${paper._id}`);
   };
 
   const handleViewAuthors = () => {
-    if (!paper?.author?._id) {
-      toast.error("Author information not available");
-      return;
+    try {
+      if (!paper?.author?._id) {
+        toast.error("Author information not available");
+        return;
+      }
+      router.push(`/admin/authors/${paper.author._id}`);
+    } catch (error) {
+      console.error("Navigation error:", error);
+      toast.error("Failed to view author details");
     }
-    router.push(`/admin/authors/${paper.author._id}`);
   };
 
   const handleViewReviews = () => {
-    if (!paper?._id) {
-      toast.error("Paper ID not found");
-      return;
+    try {
+      if (!paper?._id) {
+        toast.error("Paper ID not found");
+        return;
+      }
+      router.push(`/admin/papers/${paper._id}/reviews`);
+    } catch (error) {
+      console.error("Navigation error:", error);
+      toast.error("Failed to view reviews");
     }
-    router.push(`/admin/reviews/${paper._id}`);
   };
 
   return (
@@ -72,7 +98,7 @@ const AdminPaperActions = ({ paper }) => {
         size="sm"
         onClick={handleDownload}
         disabled={isDownloading || !paper?.fileUrl}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 min-w-[120px]"
       >
         <Download className="w-4 h-4" />
         {isDownloading ? "Downloading..." : "Download"}
@@ -83,7 +109,7 @@ const AdminPaperActions = ({ paper }) => {
         size="sm"
         onClick={handleViewDetails}
         disabled={!paper?._id}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 min-w-[120px]"
       >
         <Eye className="w-4 h-4" />
         View Details
@@ -94,7 +120,7 @@ const AdminPaperActions = ({ paper }) => {
         size="sm"
         onClick={handleViewAuthors}
         disabled={!paper?.author?._id}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 min-w-[120px]"
       >
         <Users className="w-4 h-4" />
         View Authors
@@ -105,7 +131,7 @@ const AdminPaperActions = ({ paper }) => {
         size="sm"
         onClick={handleViewReviews}
         disabled={!paper?._id}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 min-w-[120px]"
       >
         <FileText className="w-4 h-4" />
         View Reviews

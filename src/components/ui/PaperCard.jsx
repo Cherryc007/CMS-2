@@ -32,56 +32,96 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
   // Admin view
   if (session?.user.role === "admin") {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
-      >
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-              {paper.title}
-            </h3>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(paper.status)}`}>
-              {paper.status}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1 mr-4">
+            {paper.title}
+          </h3>
+          <span className={`shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(paper.status)}`}>
+            {paper.status}
+          </span>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="font-medium mr-1">Conference:</span>
+            <span className="text-gray-900">{paper.conferenceId?.name || "N/A"}</span>
+          </div>
+          
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="font-medium mr-1">Author:</span>
+            <span className="text-gray-900">{paper.author?.name || "N/A"}</span>
+          </div>
+
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="font-medium mr-1">Reviewers:</span>
+            <span className="text-gray-900">
+              {paper.reviewers?.length || 0} assigned
             </span>
           </div>
-
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center text-sm text-gray-600">
-              <span className="font-medium mr-1">Conference:</span>
-              <span className="text-gray-900">{paper.conferenceId?.name || "N/A"}</span>
-            </div>
-            
-            <div className="flex items-center text-sm text-gray-600">
-              <span className="font-medium mr-1">Author:</span>
-              <span className="text-gray-900">{paper.author?.name || "N/A"}</span>
-            </div>
-
-            <div className="flex items-center text-sm text-gray-600">
-              <span className="font-medium mr-1">Reviewers:</span>
-              <span className="text-gray-900">
-                {paper.reviewers?.length || 0} assigned
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <AdminPaperActions paper={paper} />
-          </div>
         </div>
-      </motion.div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <AdminPaperActions paper={paper} />
+        </div>
+
+        {onAssignReviewer && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Reviewers:</h4>
+            {(!paper.reviewers || paper.reviewers.length === 0) ? (
+              <p className="text-sm text-gray-500 italic">No reviewers assigned yet</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {paper.reviewers.map(reviewer => (
+                  <div key={reviewer.id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
+                    <span className="text-xs text-blue-800 mr-1">{reviewer.name}</span>
+                    <button 
+                      onClick={() => onRemoveReviewer(paper._id, reviewer.id)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <select
+                id={`reviewer-${paper._id}`}
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm p-2"
+                defaultValue=""
+              >
+                <option value="" disabled>Select reviewer</option>
+                {availableReviewers?.map(reviewer => (
+                  <option key={reviewer.id} value={reviewer.id}>
+                    {reviewer.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  const select = document.getElementById(`reviewer-${paper._id}`);
+                  if (select.value) {
+                    onAssignReviewer(paper._id, select.value);
+                    select.value = "";
+                  }
+                }}
+                className="shrink-0 px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+              >
+                Assign
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
   // Reviewer and Author view
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-    >
+    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
       <div className="flex flex-col sm:flex-row sm:justify-between">
         <div className="mb-4 sm:mb-0">
           <h3 className="font-semibold text-lg text-gray-800">{paper.title}</h3>
@@ -141,60 +181,6 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
           )}
         </div>
       </div>
-
-      {/* Admin section for assigning reviewers */}
-      {session?.user.role === "admin" && onAssignReviewer && (
-        <div className="mt-4 border-t border-gray-200 pt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Reviewers:</h4>
-          {(!paper.reviewers || paper.reviewers.length === 0) ? (
-            <p className="text-sm text-gray-500 italic">No reviewers assigned yet</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {paper.reviewers.map(reviewer => (
-                <div key={reviewer.id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
-                  <span className="text-xs text-blue-800 mr-1">{reviewer.name}</span>
-                  <button 
-                    onClick={() => onRemoveReviewer(paper._id, reviewer.id)}
-                    className="text-xs text-red-500 hover:text-red-700"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="mt-3">
-            <div className="flex items-center">
-              <select
-                id={`reviewer-${paper._id}`}
-                className="block w-2/3 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                defaultValue=""
-              >
-                <option value="" disabled>Select reviewer</option>
-                {availableReviewers.map(reviewer => (
-                  <option key={reviewer.id} value={reviewer.id}>
-                    {reviewer.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={(e) => {
-                  const select = document.getElementById(`reviewer-${paper._id}`);
-                  if (select.value) {
-                    onAssignReviewer(paper._id, select.value);
-                    select.value = "";
-                  }
-                }}
-                className="ml-2 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
-              >
-                Assign
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </motion.div>
+    </div>
   );
 } 
