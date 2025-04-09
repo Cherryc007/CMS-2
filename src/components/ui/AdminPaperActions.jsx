@@ -1,66 +1,117 @@
 "use client";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, User, FileText, Filter } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Download, Eye, Users, FileText } from "lucide-react";
 
-export default function AdminPaperActions({ 
-  paper, 
-  onDownload, 
-  onViewDetails, 
-  onViewAuthor,
-  onViewReviews 
-}) {
-  const [isLoading, setIsLoading] = useState(false);
+const AdminPaperActions = ({ paper }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const router = useRouter();
 
   const handleDownload = async () => {
     try {
-      setIsLoading(true);
-      await onDownload(paper);
+      setIsDownloading(true);
+      
+      if (!paper?.fileUrl) {
+        toast.error("No file available for download");
+        return;
+      }
+
+      const response = await fetch(paper.fileUrl);
+      if (!response.ok) {
+        throw new Error("Failed to download file");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${paper.title.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Paper downloaded successfully");
     } catch (error) {
+      console.error("Download error:", error);
       toast.error("Failed to download paper");
     } finally {
-      setIsLoading(false);
+      setIsDownloading(false);
     }
   };
 
+  const handleViewDetails = () => {
+    if (!paper?._id) {
+      toast.error("Paper ID not found");
+      return;
+    }
+    router.push(`/admin/paper-details/${paper._id}`);
+  };
+
+  const handleViewAuthors = () => {
+    if (!paper?.author?._id) {
+      toast.error("Author information not available");
+      return;
+    }
+    router.push(`/admin/authors/${paper.author._id}`);
+  };
+
+  const handleViewReviews = () => {
+    if (!paper?._id) {
+      toast.error("Paper ID not found");
+      return;
+    }
+    router.push(`/admin/reviews/${paper._id}`);
+  };
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap gap-2">
       <Button
+        variant="outline"
+        size="sm"
         onClick={handleDownload}
-        disabled={isLoading}
-        className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+        disabled={isDownloading || !paper?.fileUrl}
+        className="flex items-center gap-2"
       >
-        <Download className="w-4 h-4 mr-2" />
-        Download Paper
+        <Download className="w-4 h-4" />
+        {isDownloading ? "Downloading..." : "Download"}
       </Button>
 
       <Button
-        onClick={() => onViewDetails(paper.id)}
-        className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
+        variant="outline"
+        size="sm"
+        onClick={handleViewDetails}
+        disabled={!paper?._id}
+        className="flex items-center gap-2"
       >
-        <Eye className="w-4 h-4 mr-2" />
+        <Eye className="w-4 h-4" />
         View Details
       </Button>
 
       <Button
-        onClick={() => onViewAuthor(paper.authorId)}
-        className="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded"
+        variant="outline"
+        size="sm"
+        onClick={handleViewAuthors}
+        disabled={!paper?.author?._id}
+        className="flex items-center gap-2"
       >
-        <User className="w-4 h-4 mr-2" />
-        View Author
+        <Users className="w-4 h-4" />
+        View Authors
       </Button>
 
-      {paper.reviewCount > 0 && (
-        <Button
-          onClick={() => onViewReviews(paper.id)}
-          className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          View Reviews ({paper.reviewCount})
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleViewReviews}
+        disabled={!paper?._id}
+        className="flex items-center gap-2"
+      >
+        <FileText className="w-4 h-4" />
+        View Reviews
+      </Button>
     </div>
   );
-} 
+};
+
+export default AdminPaperActions; 

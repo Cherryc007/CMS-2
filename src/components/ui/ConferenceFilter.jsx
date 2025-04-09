@@ -1,21 +1,28 @@
 "use client";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Filter, X } from "lucide-react";
 
-export default function ConferenceFilter({ 
-  conferences, 
-  onFilterChange,
-  onClearFilter 
-}) {
+const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
   const [selectedConference, setSelectedConference] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".conference-filter")) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleConferenceSelect = (conference) => {
     setSelectedConference(conference);
-    setShowDropdown(false);
-    onFilterChange(conference);
+    setIsOpen(false);
+    onFilterChange(conference._id);
   };
 
   const handleClearFilter = () => {
@@ -24,50 +31,70 @@ export default function ConferenceFilter({
   };
 
   return (
-    <div className="relative">
-      <div className="flex items-center space-x-2">
-        <Button
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
-        >
-          <Filter className="w-4 h-4 mr-2" />
+    <div className="conference-filter relative">
+      <Button
+        variant="outline"
+        className="flex items-center gap-2 bg-white hover:bg-gray-50"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-gray-700">
           {selectedConference ? selectedConference.name : "Filter by Conference"}
-        </Button>
-
-        {selectedConference && (
-          <Button
-            onClick={handleClearFilter}
-            className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {showDropdown && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute z-10 mt-2 w-64 bg-white rounded-md shadow-lg"
+        </span>
+        <svg
+          className={`w-4 h-4 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <div className="py-1">
-            {conferences.map((conference) => (
-              <button
-                key={conference.id}
-                onClick={() => handleConferenceSelect(conference)}
-                className={`w-full text-left px-4 py-2 text-sm ${
-                  selectedConference?.id === conference.id
-                    ? "bg-blue-100 text-blue-800"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {conference.name}
-              </button>
-            ))}
-          </div>
-        </motion.div>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </Button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute z-50 w-full mt-2 bg-white rounded-md shadow-lg border border-gray-200"
+          >
+            <div className="py-1 max-h-60 overflow-auto">
+              {conferences.map((conference) => (
+                <button
+                  key={conference._id}
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
+                    selectedConference?._id === conference._id
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-700"
+                  }`}
+                  onClick={() => handleConferenceSelect(conference)}
+                >
+                  {conference.name}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {selectedConference && (
+        <Button
+          variant="ghost"
+          className="ml-2 text-sm text-gray-500 hover:text-gray-700"
+          onClick={handleClearFilter}
+        >
+          Clear
+        </Button>
       )}
     </div>
   );
-} 
+};
+
+export default ConferenceFilter; 
