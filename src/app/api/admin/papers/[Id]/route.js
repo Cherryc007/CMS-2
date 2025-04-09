@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { connectToDatabase } from "@/lib/mongodb";
 
 export async function GET(request, { params }) {
   try {
@@ -30,40 +30,66 @@ export async function GET(request, { params }) {
       );
     }
 
-    const paper = await prisma.paper.findUnique({
-      where: { id: paperId },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        conference: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        reviewers: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
-          },
-        },
+    const { db } = await connectToDatabase();
+    
+    // Find the paper with author and conference details
+    const paper = await db.collection("papers").aggregate([
+      { $match: { _id: paperId } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "author"
+        }
       },
-    });
+      { $unwind: "$author" },
+      {
+        $lookup: {
+          from: "conferences",
+          localField: "conferenceId",
+          foreignField: "_id",
+          as: "conference"
+        }
+      },
+      { $unwind: "$conference" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "reviewers",
+          foreignField: "_id",
+          as: "reviewers"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          abstract: 1,
+          keywords: 1,
+          status: 1,
+          fileUrl: 1,
+          submissionDate: 1,
+          "author.id": "$author._id",
+          "author.name": "$author.name",
+          "author.email": "$author.email",
+          "conference.id": "$conference._id",
+          "conference.name": "$conference.name",
+          "reviewers.id": "$reviewers._id",
+          "reviewers.name": "$reviewers.name",
+          "reviewers.status": "$reviewers.status"
+        }
+      }
+    ]).toArray();
 
-    if (!paper) {
+    if (!paper || paper.length === 0) {
       return NextResponse.json(
         { message: "Paper not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ paper });
+    return NextResponse.json({ paper: paper[0] });
   } catch (error) {
     console.error("Error fetching paper details:", error);
     return NextResponse.json(

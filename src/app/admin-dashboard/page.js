@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (selectedConference) {
-      const filtered = papers.filter(paper => paper.conferenceId === selectedConference.id);
+      const filtered = papers.filter(paper => paper.conferenceId.toString() === selectedConference.id.toString());
       setFilteredPapers(filtered);
       updateConferenceStats(filtered);
     } else {
@@ -120,15 +120,15 @@ export default function AdminDashboard() {
   };
 
   const handleViewDetails = (paperId) => {
-    router.push(`/admin/paper-details?id=${paperId}`);
+    router.push(`/admin/paper-details?id=${paperId.toString()}`);
   };
 
   const handleViewAuthor = (authorId) => {
-    router.push(`/admin/user-details?id=${authorId}`);
+    router.push(`/admin/user-details?id=${authorId.toString()}`);
   };
 
   const handleViewReviews = (paperId) => {
-    router.push(`/admin/paper-reviews?id=${paperId}`);
+    router.push(`/admin/paper-reviews?id=${paperId.toString()}`);
   };
 
   const handleAssignReviewer = async (paperId, reviewerId) => {
