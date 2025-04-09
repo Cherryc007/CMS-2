@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 
-export default function AdminPaperDetails() {
+function PaperDetailsContent() {
   const searchParams = useSearchParams();
   const paperId = searchParams.get("id");
   const [paper, setPaper] = useState(null);
@@ -65,9 +65,9 @@ export default function AdminPaperDetails() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{paper.title}</h1>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>By {paper.author}</span>
+              <span>By {paper.author?.name}</span>
               <span>•</span>
-              <span>{paper.conference}</span>
+              <span>{paper.conferenceId?.name}</span>
               <span>•</span>
               <span>Submitted on {new Date(paper.submissionDate).toLocaleDateString()}</span>
             </div>
@@ -124,5 +124,17 @@ export default function AdminPaperDetails() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function AdminPaperDetails() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <PaperDetailsContent />
+    </Suspense>
   );
 } 
