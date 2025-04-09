@@ -10,126 +10,104 @@ export async function GET(request) {
   try {
     const session = await auth();
     
-    // Check if user is authenticated and has author role
-    if (!session || session.user.role !== "author") {
+    // Strict RBAC check
+    if (!session) {
       return NextResponse.json({ 
         success: false, 
-        message: "Unauthorized - Only authors can access their papers" 
+        message: "Authentication required" 
       }, { status: 401 });
     }
-    
+
     await connectDB();
-    
-    // First find the user by email to get the MongoDB _id
-    const user = await User.findOne({ email: session.user.email });
-    
+
+    // Verify user exists and has author role
+    const user = await User.findOne({ 
+      email: session.user.email 
+    });
+
     if (!user) {
       return NextResponse.json({ 
         success: false, 
         message: "User not found" 
       }, { status: 404 });
     }
-    
-    // Get the paper ID from the query parameters if provided
-    const { searchParams } = new URL(request.url);
-    const paperId = searchParams.get('id');
-    
-    // Build the query
-    const query = { author: user._id };
-    if (paperId) {
-      query._id = paperId;
-    }
-    
-    console.log("Fetching papers with query:", JSON.stringify(query));
-    
-    let papers = [];
-    try {
-      // Fetch papers authored by the current user with error handling for populate
-      papers = await Paper.find(query)
-        .populate('reviewer', 'name email')
-        .populate('conferenceId', 'name')
-        .populate({
-          path: 'reviews',
-          model: Review,
-          select: 'feedback rating status fileUrl filePath reviewer',
-          populate: {
-            path: 'reviewer',
-            select: 'name email'
-          }
-        })
-        .sort({ createdAt: -1 })
-        .lean() || [];
-        
-      console.log(`Found ${papers.length} papers for user ${user._id}`);
-      
-      // If fetching a specific paper and it's not found
-      if (paperId && papers.length === 0) {
-        return NextResponse.json({ 
-          success: false, 
-          message: "Paper not found or you don't have permission to access it" 
-        }, { status: 404 });
-      }
-      
-      // Format papers for frontend consumption
-      const formattedPapers = papers.map(paper => ({
-        id: paper._id.toString(),
-        title: paper.title,
-        abstract: paper.abstract,
-        fileUrl: paper.fileUrl || null,
-        filePath: paper.filePath || null,
-        author: paper.author ? paper.author.name : "Unknown Author",
-        submissionDate: new Date(paper.createdAt).toLocaleDateString(),
-        status: paper.status,
-        conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
-        hasReviewer: !!paper.reviewer,
-        reviewer: paper.reviewer ? {
-          id: paper.reviewer._id.toString(),
-          name: paper.reviewer.name
-        } : null,
-        reviews: paper.reviews ? paper.reviews.map(review => ({
-          id: review._id.toString(),
-          feedback: review.feedback,
-          rating: review.rating,
-          status: review.status,
-          fileUrl: review.fileUrl,
-          filePath: review.filePath,
-          reviewer: review.reviewer ? {
-            id: review.reviewer._id.toString(),
-            name: review.reviewer.name
-          } : null
-        })) : []
-      }));
-      
-      // Calculate statistics - all zeros if no papers
-      const stats = {
-        totalSubmissions: papers.length,
-        pending: papers.filter(p => p.status === "Pending").length,
-        underReview: papers.filter(p => p.status === "Under Review").length,
-        accepted: papers.filter(p => p.status === "Accepted").length,
-        rejected: papers.filter(p => p.status === "Rejected").length,
-        resubmitted: papers.filter(p => p.status === "Resubmitted").length,
-        finalSubmitted: papers.filter(p => p.status === "FinalSubmitted").length
-      };
-      
-      return NextResponse.json({ 
-        success: true, 
-        papers: formattedPapers,
-        stats
-      }, { status: 200 });
-      
-    } catch (error) {
-      console.error("Error in paper fetch query:", error);
+
+    // Check for author role
+    if (user.role !== "author") {
       return NextResponse.json({ 
         success: false, 
-        message: `Error querying papers: ${error.message}` 
-      }, { status: 500 });
+        message: "Unauthorized - Author access required" 
+      }, { status: 403 });
     }
+
+    console.log(`Author ${user.email} fetching their papers`);
+
+    // Get all papers by this author
+    const papers = await Paper.find({ author: user._id })
+      .populate('conferenceId', 'name startDate endDate')
+      .populate('reviewers', 'name email')
+      .populate({
+        path: 'reviews',
+        match: { status: 'approved' }, // Only show approved reviews
+        populate: {
+          path: 'reviewer',
+          select: 'name email'
+        }
+      })
+      .sort({ submittedAt: -1 });
+
+    // Calculate statistics
+    const stats = {
+      totalSubmissions: papers.length,
+      pending: papers.filter(p => p.status === "Pending").length,
+      underReview: papers.filter(p => p.status === "Under Review").length,
+      accepted: papers.filter(p => p.status === "Accepted").length,
+      rejected: papers.filter(p => p.status === "Rejected").length,
+      revisionRequired: papers.filter(p => p.status === "Revision Required").length
+    };
+
+    // Format the papers for response - only include necessary data
+    const formattedPapers = papers.map(paper => ({
+      _id: paper._id,
+      title: paper.title,
+      abstract: paper.abstract,
+      status: paper.status,
+      fileUrl: paper.fileUrl,
+      submittedAt: paper.submittedAt,
+      conference: {
+        _id: paper.conferenceId?._id,
+        name: paper.conferenceId?.name,
+        startDate: paper.conferenceId?.startDate,
+        endDate: paper.conferenceId?.endDate
+      },
+      // Only show reviewer names, not emails
+      reviewers: paper.reviewers?.map(reviewer => ({
+        name: reviewer.name
+      })) || [],
+      // Only show approved reviews
+      reviews: paper.reviews?.map(review => ({
+        _id: review._id,
+        reviewer: {
+          name: review.reviewer?.name
+        },
+        status: review.status,
+        submittedAt: review.submittedAt
+      })) || []
+    }));
+
+    console.log(`Returning ${formattedPapers.length} papers for author ${user.email}`);
+
+    return NextResponse.json({ 
+      success: true,
+      papers: formattedPapers,
+      stats
+    }, { status: 200 });
     
   } catch (error) {
-    console.error("Error fetching author papers:", error);
+    console.error("Error fetching papers:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Failed to fetch papers" 
+      message: error.message || "Failed to fetch papers" 
     }, { status: 500 });
   }
 } 
