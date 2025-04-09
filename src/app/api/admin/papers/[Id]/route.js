@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { auth } from "@/auth";
+import connectDB from "@/lib/connectDB";
+import Paper from "@/models/paperModel";
+import User from "@/models/userModel";
+import Conference from "@/models/conferenceModel";
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session) {
       return NextResponse.json(
@@ -30,66 +32,22 @@ export async function GET(request, { params }) {
       );
     }
 
-    const { db } = await connectToDatabase();
+    await connectDB();
     
     // Find the paper with author and conference details
-    const paper = await db.collection("papers").aggregate([
-      { $match: { _id: paperId } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "authorId",
-          foreignField: "_id",
-          as: "author"
-        }
-      },
-      { $unwind: "$author" },
-      {
-        $lookup: {
-          from: "conferences",
-          localField: "conferenceId",
-          foreignField: "_id",
-          as: "conference"
-        }
-      },
-      { $unwind: "$conference" },
-      {
-        $lookup: {
-          from: "users",
-          localField: "reviewers",
-          foreignField: "_id",
-          as: "reviewers"
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          abstract: 1,
-          keywords: 1,
-          status: 1,
-          fileUrl: 1,
-          submissionDate: 1,
-          "author.id": "$author._id",
-          "author.name": "$author.name",
-          "author.email": "$author.email",
-          "conference.id": "$conference._id",
-          "conference.name": "$conference.name",
-          "reviewers.id": "$reviewers._id",
-          "reviewers.name": "$reviewers.name",
-          "reviewers.status": "$reviewers.status"
-        }
-      }
-    ]).toArray();
+    const paper = await Paper.findById(paperId)
+      .populate('author', 'name email')
+      .populate('conferenceId', 'name')
+      .populate('reviewers', 'name status');
 
-    if (!paper || paper.length === 0) {
+    if (!paper) {
       return NextResponse.json(
         { message: "Paper not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ paper: paper[0] });
+    return NextResponse.json({ paper });
   } catch (error) {
     console.error("Error fetching paper details:", error);
     return NextResponse.json(
