@@ -36,7 +36,7 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
         <Button
           variant="outline"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between gap-2 min-w-[200px] bg-white"
+          className="flex items-center justify-between gap-2 min-w-[200px] bg-white relative z-10"
         >
           <span className="truncate">
             {selectedConference ? selectedConference.name : "Filter by Conference"}
@@ -59,7 +59,7 @@ const ConferenceFilter = ({ conferences, onFilterChange, onClearFilter }) => {
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+        <div className="absolute left-0 right-0 mt-1 py-1 bg-white rounded-md shadow-lg border border-gray-200 z-[100]">
           <div className="max-h-60 overflow-auto">
             {conferences.map((conference) => (
               <button

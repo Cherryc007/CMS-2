@@ -32,7 +32,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
   // Admin view
   if (session?.user.role === "admin") {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="p-4 border-b border-gray-200 last:border-b-0">
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1 mr-4">
             {paper.title}
