@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
+import { put } from "@vercel/blob";
 
 function PaperDetailsContent() {
   const searchParams = useSearchParams();
@@ -32,6 +33,31 @@ function PaperDetailsContent() {
       toast.error(error.message || "Failed to load paper details");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!paper?.fileUrl) {
+      toast.error("No file available for download");
+      return;
+    }
+
+    try {
+      const response = await fetch(paper.fileUrl);
+      if (!response.ok) throw new Error("Failed to fetch file");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${paper.title.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file");
     }
   };
 
@@ -112,14 +138,12 @@ function PaperDetailsContent() {
           </div>
 
           <div className="flex gap-4">
-            <a
-              href={paper.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handleDownload}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Download Paper
-            </a>
+            </button>
           </div>
         </div>
       </motion.div>

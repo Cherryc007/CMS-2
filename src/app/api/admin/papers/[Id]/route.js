@@ -1,44 +1,33 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import connectDB from "@/lib/connectDB";
-import Paper from "@/models/paperModel";
-import User from "@/models/userModel";
-import Conference from "@/models/conferenceModel";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { connectToDatabase } from "@/lib/db";
+import Paper from "@/models/Paper";
 
 export async function GET(request, { params }) {
   try {
-    const session = await auth();
-    
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "admin") {
       return NextResponse.json(
-        { message: "Unauthorized - Please log in" },
+        { message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    if (session.user.role !== "admin") {
-      return NextResponse.json(
-        { message: "Unauthorized - Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    const paperId = params.id;
-
-    if (!paperId) {
+    const { id } = params;
+    if (!id) {
       return NextResponse.json(
         { message: "Paper ID is required" },
         { status: 400 }
       );
     }
 
-    await connectDB();
-    
-    // Find the paper with author and conference details
-    const paper = await Paper.findById(paperId)
-      .populate('author', 'name email')
-      .populate('conferenceId', 'name')
-      .populate('reviewers', 'name status');
+    await connectToDatabase();
+
+    const paper = await Paper.findById(id)
+      .populate("author", "name email")
+      .populate("conferenceId", "name")
+      .populate("reviewers.reviewer", "name email");
 
     if (!paper) {
       return NextResponse.json(
@@ -47,7 +36,25 @@ export async function GET(request, { params }) {
       );
     }
 
-    return NextResponse.json({ paper });
+    // Format the paper data
+    const formattedPaper = {
+      _id: paper._id,
+      title: paper.title,
+      abstract: paper.abstract,
+      keywords: paper.keywords,
+      fileUrl: paper.fileUrl,
+      status: paper.status,
+      submissionDate: paper.submissionDate,
+      author: paper.author,
+      conferenceId: paper.conferenceId,
+      reviewers: paper.reviewers.map(reviewer => ({
+        reviewer: reviewer.reviewer,
+        status: reviewer.status,
+        review: reviewer.review
+      }))
+    };
+
+    return NextResponse.json({ paper: formattedPaper });
   } catch (error) {
     console.error("Error fetching paper details:", error);
     return NextResponse.json(

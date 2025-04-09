@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (selectedConference) {
-      const filtered = papers.filter(paper => paper.conferenceId.toString() === selectedConference.id.toString());
+      const filtered = papers.filter(paper => paper.conferenceId?.toString() === selectedConference.id?.toString());
       setFilteredPapers(filtered);
       updateConferenceStats(filtered);
     } else {
@@ -120,15 +120,15 @@ export default function AdminDashboard() {
   };
 
   const handleViewDetails = (paperId) => {
-    router.push(`/admin/paper-details?id=${paperId.toString()}`);
+    router.push(`/admin/paper-details?id=${paperId}`);
   };
 
   const handleViewAuthor = (authorId) => {
-    router.push(`/admin/user-details?id=${authorId.toString()}`);
+    router.push(`/admin/user-details?id=${authorId}`);
   };
 
   const handleViewReviews = (paperId) => {
-    router.push(`/admin/paper-reviews?id=${paperId.toString()}`);
+    router.push(`/admin/paper-reviews?id=${paperId}`);
   };
 
   const handleAssignReviewer = async (paperId, reviewerId) => {
@@ -229,6 +229,54 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white p-4 rounded-lg shadow text-center"
+        >
+          <h2 className="text-lg font-semibold mb-2">Manage Papers</h2>
+          <p className="text-gray-600 mb-2">Assign reviewers and manage paper submissions</p>
+          <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2">
+            {stats.totalPapers} Papers
+          </span>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="bg-white p-4 rounded-lg shadow text-center"
+        >
+          <h2 className="text-lg font-semibold mb-2">Create Conference</h2>
+          <p className="text-gray-600 mb-2">Set up new conferences and events</p>
+          <Link 
+            href="/conference-creation"
+            className="inline-flex items-center justify-center px-3 py-1.5 text-sm border border-transparent rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Create Conference
+          </Link>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="bg-white p-4 rounded-lg shadow text-center"
+        >
+          <h2 className="text-lg font-semibold mb-2">Create Post</h2>
+          <p className="text-gray-600 mb-2">Share news, updates and announcements</p>
+          <Link 
+            href="/admin-dashboard/create-post"
+            className="inline-flex items-center justify-center px-3 py-1.5 text-sm border border-transparent rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Create Post
+          </Link>
+        </motion.div>
+      </div>
+      
       {/* Conference Filter */}
       <div className="mb-6">
         <ConferenceFilter
@@ -303,7 +351,7 @@ export default function AdminDashboard() {
         <div className="grid gap-3">
           {filteredPapers.map((paper, index) => (
             <motion.div
-              key={paper.id}
+              key={paper._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -316,9 +364,9 @@ export default function AdminDashboard() {
                       {paper.title}
                     </h2>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
-                      <span className="truncate">By {paper.author}</span>
+                      <span className="truncate">By {paper.author?.name}</span>
                       <span>•</span>
-                      <span className="truncate">{paper.conference}</span>
+                      <span className="truncate">{paper.conferenceId?.name}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
