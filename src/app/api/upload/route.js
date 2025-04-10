@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { uploadToBlob, validateFileUpload } from '@/lib/blobUtils';
+import { connectDB } from '@/lib/connectDB';
 
 export async function POST(request) {
   try {
