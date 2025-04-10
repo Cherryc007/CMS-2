@@ -12,7 +12,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
   
   // Check if the current user is the assigned reviewer for this paper
   const isAssignedReviewer = paper.reviewers && 
-    paper.reviewers.some(reviewer => reviewer.id === session?.user?.id);
+    paper.reviewers.some(reviewer => reviewer._id === session?.user?.id);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -45,7 +45,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-gray-600">
             <span className="font-medium mr-1">Conference:</span>
-            <span className="text-gray-900">{paper.conferenceId?.name || "N/A"}</span>
+            <span className="text-gray-900">{paper.conference?.name || "N/A"}</span>
           </div>
           
           <div className="flex items-center text-sm text-gray-600">
@@ -73,10 +73,10 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
             ) : (
               <div className="flex flex-wrap gap-2 mb-3">
                 {paper.reviewers.map(reviewer => (
-                  <div key={reviewer.id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
+                  <div key={reviewer._id} className="flex items-center bg-blue-50 rounded-full px-3 py-1">
                     <span className="text-xs text-blue-800 mr-1">{reviewer.name}</span>
                     <button 
-                      onClick={() => onRemoveReviewer(paper._id, reviewer.id)}
+                      onClick={() => onRemoveReviewer(paper._id, reviewer._id)}
                       className="text-xs text-red-500 hover:text-red-700"
                     >
                       ✕
@@ -94,7 +94,7 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
               >
                 <option value="" disabled>Select reviewer</option>
                 {availableReviewers?.map(reviewer => (
-                  <option key={reviewer.id} value={reviewer.id}>
+                  <option key={reviewer._id} value={reviewer._id}>
                     {reviewer.name}
                   </option>
                 ))}
@@ -126,10 +126,10 @@ export default function PaperCard({ paper, availableReviewers, onAssignReviewer,
         <div className="mb-4 sm:mb-0">
           <h3 className="font-semibold text-lg text-gray-800">{paper.title}</h3>
           <p className="text-sm text-gray-600">
-            By {paper.author?.name} • Submitted on {new Date(paper.submissionDate).toLocaleDateString()}
+            By {paper.author?.name || "Unknown Author"} • Submitted on {new Date(paper.submittedAt).toLocaleDateString()}
           </p>
           <p className="text-sm text-gray-600">
-            Conference: {paper.conferenceId?.name}
+            Conference: {paper.conference?.name || "N/A"}
           </p>
           <p className="mt-2 text-sm text-gray-700 line-clamp-2">
             {paper.abstract}
