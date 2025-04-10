@@ -42,11 +42,11 @@ export async function GET() {
 
     // Calculate statistics
     const stats = {
-      total: papers.length,
+      totalPapers: papers.length,
       underReview: papers.filter(p => p.status === "UnderReview").length,
       accepted: papers.filter(p => p.status === "Accepted").length,
       rejected: papers.filter(p => p.status === "Rejected").length,
-      revisionRequired: papers.filter(p => p.status === "RevisionRequired").length
+      pendingReviews: papers.filter(p => p.status === "UnderReview").length
     };
 
     // Format papers for response
@@ -66,11 +66,9 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: {
-        papers: formattedPapers,
-        reviewers,
-        stats
-      }
+      papers: formattedPapers,
+      reviewers,
+      stats
     });
 
   } catch (error) {
