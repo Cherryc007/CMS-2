@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
@@ -9,7 +8,7 @@ import Review from "@/models/reviewModel";
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     // Strict RBAC check
     if (!session || session.user.role !== "author") {
@@ -59,7 +58,7 @@ export async function GET(request) {
       revisionRequired: papers.filter(p => p.status === "Revision Required").length
     };
 
-    // Format the papers for response - only include necessary data
+    // Format the papers for response
     const formattedPapers = papers.map(paper => ({
       _id: paper._id,
       title: paper.title,
@@ -73,11 +72,9 @@ export async function GET(request) {
         startDate: paper.conferenceId?.startDate,
         endDate: paper.conferenceId?.endDate
       },
-      // Only show reviewer names, not emails
       reviewers: paper.reviewers?.map(reviewer => ({
         name: reviewer.name
       })) || [],
-      // Only show approved reviews
       reviews: paper.reviews?.map(review => ({
         _id: review._id,
         reviewer: {
@@ -88,16 +85,21 @@ export async function GET(request) {
       })) || []
     }));
 
-    console.log(`Returning ${formattedPapers.length} papers for author ${user.email}`);
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      papers: formattedPapers,
-      stats
+      message: "Papers fetched successfully",
+      data: {
+        papers: formattedPapers,
+        stats
+      }
     }, { status: 200 });
-    
+
   } catch (error) {
-    console.error("Error fetching papers:", error);
+    console.error("Error in GET /api/author/papers:", {
+      error: error.message,
+      stack: error.stack,
+      user: session?.user?.email || 'unknown'
+    });
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to fetch papers" 

@@ -55,15 +55,18 @@ export async function POST(request) {
     await paper.save();
 
     // Create a new review document
-    const review = await Review.create({
+    const review = new Review({
       paper: paperId,
       reviewer: reviewerId,
-      status: "Pending"
+      status: "Pending",
+      score: 0,
+      recommendation: "",
+      comments: "",
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
 
-    // Add review to paper
-    paper.reviews.push(review._id);
-    await paper.save();
+    await review.save();
 
     // Send email notifications
     try {

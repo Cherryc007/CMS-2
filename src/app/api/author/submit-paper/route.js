@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import Conference from "@/models/conferenceModel";
 import User from "@/models/userModel";
 import { uploadToBlob, validateFileUpload } from "@/lib/blobUtils";
+import transporter from "@/lib/nodemailer";
 
 export async function POST(request) {
   try {
     console.log('Starting paper submission process...');
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     // Check if user is authenticated and has author role
     if (!session || session.user.role !== "author") {
@@ -57,10 +57,10 @@ export async function POST(request) {
     if (!user) {
       return NextResponse.json({ 
         success: false, 
-        message: "User not found in the database" 
+        message: "User not found" 
       }, { status: 404 });
     }
-    
+
     // Check if conference exists
     const conference = await Conference.findById(conferenceId);
     if (!conference) {
@@ -69,61 +69,90 @@ export async function POST(request) {
         message: "Conference not found" 
       }, { status: 404 });
     }
-    
-    console.log('Uploading file to Vercel Blob...');
+
     // Upload file to Vercel Blob
     const { url, pathname } = await uploadToBlob(file, 'papers');
-    console.log('File uploaded successfully:', { url, pathname });
-    
+
     // Create new paper
-    const paper = await Paper.create({
+    const paper = new Paper({
       title,
       abstract,
-      conferenceId,
       author: user._id,
+      conferenceId,
       fileUrl: url,
       filePath: pathname,
-      status: "Pending"
+      status: "Pending",
+      submittedAt: new Date()
     });
-    
-    console.log('Paper created successfully:', paper._id);
-    
+
+    await paper.save();
+
     // Send email notifications
     try {
-      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/paperSubmissionAlert`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || ''
-        },
-        body: JSON.stringify({
-          paperId: paper._id.toString(),
-          conferenceId: conference._id.toString()
-        }),
+      // Email to author
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        to: user.email,
+        subject: "Paper Submission Confirmation",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Paper Submission Confirmation</h2>
+            <p>Hello ${user.name},</p>
+            <p>Your paper has been successfully submitted:</p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Paper Title:</strong> ${title}</p>
+              <p><strong>Conference:</strong> ${conference.name}</p>
+              <p><strong>Submission Date:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            <p>You will be notified when reviewers are assigned to your paper.</p>
+            <p>Best regards,<br>The Conference Management Team</p>
+          </div>
+        `
       });
-      
-      if (!emailResponse.ok) {
-        console.error("Failed to send email notifications, but paper was submitted successfully");
+
+      // Email to admin
+      const admin = await User.findOne({ role: "admin" });
+      if (admin) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_FROM,
+          to: admin.email,
+          subject: "New Paper Submission",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">New Paper Submission</h2>
+              <p>A new paper has been submitted for review:</p>
+              <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p><strong>Paper Title:</strong> ${title}</p>
+                <p><strong>Author:</strong> ${user.name}</p>
+                <p><strong>Conference:</strong> ${conference.name}</p>
+                <p><strong>Submission Date:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+              <p>Please log in to the admin dashboard to assign reviewers.</p>
+              <p>Best regards,<br>The Conference Management Team</p>
+            </div>
+          `
+        });
       }
     } catch (emailError) {
       console.error("Error sending email notifications:", emailError);
+      // Don't fail the request if email fails
     }
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       message: "Paper submitted successfully",
-      paper: {
-        id: paper._id.toString(),
-        title: paper.title,
-        abstract: paper.abstract,
-        fileUrl: paper.fileUrl,
-        filePath: paper.filePath,
-        status: paper.status
+      data: {
+        paper: {
+          _id: paper._id,
+          title: paper.title,
+          status: paper.status,
+          submittedAt: paper.submittedAt
+        }
       }
-    }, { status: 201 });
-    
+    });
+
   } catch (error) {
-    console.error("Error submitting paper:", error);
+    console.error("Error in POST /api/author/submit-paper:", error);
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to submit paper" 

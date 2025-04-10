@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { uploadToBlob, validateFileUpload } from '@/lib/blobUtils';
-import { connectDB } from '@/lib/connectDB';
+import connectDB from '@/lib/connectDB';
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     // Check if user is authenticated and has either author or reviewer role
     if (!session || !["author", "reviewer"].includes(session.user.role)) {
+      console.error(`Unauthorized upload attempt by user: ${session?.user?.email || 'unknown'}`);
       return NextResponse.json({ 
         success: false, 
         message: "Unauthorized - Only authors and reviewers can upload files" 
@@ -20,6 +20,7 @@ export async function POST(request) {
     const file = formData.get('file');
     
     if (!file) {
+      console.error(`No file provided by user: ${session.user.email}`);
       return NextResponse.json({ 
         success: false, 
         message: "No file provided" 
@@ -29,6 +30,7 @@ export async function POST(request) {
     // Validate file upload
     const validationResult = await validateFileUpload(file);
     if (!validationResult.valid) {
+      console.error(`Invalid file upload by user ${session.user.email}: ${validationResult.error}`);
       return NextResponse.json({ 
         success: false, 
         message: validationResult.error 
@@ -37,6 +39,7 @@ export async function POST(request) {
     
     // Upload file to Vercel Blob
     const { url, pathname } = await uploadToBlob(file, 'uploads');
+    console.log(`File uploaded successfully by user ${session.user.email}: ${pathname}`);
     
     return NextResponse.json({ 
       success: true, 
@@ -45,10 +48,14 @@ export async function POST(request) {
         url,
         pathname
       }
-    }, { status: 200 });
+    });
     
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error in POST /api/upload:", {
+      error: error.message,
+      stack: error.stack,
+      user: session?.user?.email || 'unknown'
+    });
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to upload file" 
