@@ -1,143 +1,135 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
+import Paper from "@/models/paperModel";
 import Review from "@/models/reviewModel";
+import User from "@/models/userModel";
 import connectDB from "@/lib/connectDB";
 import transporter from "@/lib/nodemailer";
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { reviewId, verdict } = await request.json();
-
-    if (!reviewId || !verdict) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const session = await auth();
+    
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - Admin access required" 
+      }, { status: 401 });
     }
 
     await connectDB();
 
-    // Get review details with populated references
-    const review = await Review.findById(reviewId)
-      .populate('reviewer', 'name email')
-      .populate({
-        path: 'paper',
-        select: 'title author conferenceId',
-        populate: [
-          { path: 'author', select: 'name email' },
-          { path: 'conferenceId', select: 'name' }
-        ]
-      });
+    const { paperId, verdict } = await request.json();
 
-    if (!review) {
-      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    if (!paperId || !verdict) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper ID and verdict are required" 
+      }, { status: 400 });
     }
 
-    // Update review status
-    review.status = verdict;
-    await review.save();
+    // Find the paper
+    const paper = await Paper.findById(paperId)
+      .populate('author', 'name email')
+      .populate('conferenceId', 'title')
+      .populate('reviewers', 'name email');
 
-    // Prepare verdict message
-    const getVerdictMessage = () => {
-      switch (verdict) {
-        case "approved":
-          return "Your review has been approved and will be shared with the author.";
-        case "rejected":
-          return "Your review requires some changes before it can be approved.";
-        case "revision":
-          return "Please revise your review based on the admin's feedback.";
-        default:
-          return "Your review status has been updated.";
-      }
-    };
+    if (!paper) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper not found" 
+      }, { status: 404 });
+    }
 
-    // Send email to reviewer
-    const reviewerMailOptions = {
-      from: process.env.GMAIL_ID,
-      to: review.reviewer.email,
-      subject: `Review Verdict - ${review.paper.title}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <h2 style="color: #2563eb; margin-bottom: 20px;">Review Verdict Update</h2>
-          <p>${getVerdictMessage()}</p>
-          <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
-            <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
-            <p style="margin-bottom: 5px;"><strong>Title:</strong> ${review.paper.title}</p>
-            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${review.paper.conferenceId.name}</p>
-            <p style="margin-bottom: 5px;"><strong>Verdict:</strong> ${verdict.charAt(0).toUpperCase() + verdict.slice(1)}</p>
-            <p style="margin-bottom: 0;"><strong>Updated On:</strong> ${new Date().toLocaleDateString()}</p>
-          </div>
-          <p>Please log in to your dashboard to view more details.</p>
-          <p>Best regards,<br />Conference Management Team</p>
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #6b7280;">
-            <p>This is an automated message. Please do not reply to this email.</p>
-          </div>
-        </div>
-      `
-    };
+    // Update paper status based on verdict
+    let newStatus;
+    switch (verdict) {
+      case "Accept":
+        newStatus = "Accepted";
+        break;
+      case "Reject":
+        newStatus = "Rejected";
+        break;
+      case "Revision":
+        newStatus = "RevisionRequired";
+        break;
+      default:
+        return NextResponse.json({ 
+          success: false, 
+          message: "Invalid verdict" 
+        }, { status: 400 });
+    }
 
-    // If review is approved, notify the author
-    if (verdict === "approved") {
-      const authorMailOptions = {
-        from: process.env.GMAIL_ID,
-        to: review.paper.author.email,
-        subject: `New Review Available - ${review.paper.title}`,
+    paper.status = newStatus;
+    await paper.save();
+
+    // Send email notifications
+    try {
+      // Email to author
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        to: paper.author.email,
+        subject: `Paper Verdict: ${paper.title}`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <h2 style="color: #2563eb; margin-bottom: 20px;">New Review Available</h2>
-            <p>Dear ${review.paper.author.name},</p>
-            <p>A new review is available for your paper:</p>
-            <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
-              <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
-              <p style="margin-bottom: 5px;"><strong>Title:</strong> ${review.paper.title}</p>
-              <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${review.paper.conferenceId.name}</p>
-              <p style="margin-bottom: 5px;"><strong>Recommendation:</strong> ${review.recommendation}</p>
-              <p style="margin-bottom: 5px;"><strong>Score:</strong> ${review.score}/5</p>
-              <p style="margin-bottom: 0;"><strong>Review Date:</strong> ${new Date().toLocaleDateString()}</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Paper Verdict</h2>
+            <p>Hello ${paper.author.name},</p>
+            <p>Your paper has been reviewed and a verdict has been reached:</p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Paper Title:</strong> ${paper.title}</p>
+              <p><strong>Conference:</strong> ${paper.conferenceId.title}</p>
+              <p><strong>Verdict:</strong> ${newStatus}</p>
             </div>
-            <p>Please log in to your dashboard to view the complete review.</p>
-            <p>Best regards,<br />Conference Management Team</p>
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #6b7280;">
-              <p>This is an automated message. Please do not reply to this email.</p>
-            </div>
+            <p>Please log in to your account to view the detailed feedback.</p>
+            <p>Best regards,<br>The Conference Management Team</p>
           </div>
         `
-      };
+      });
 
-      // Send both emails
-      await Promise.all([
-        transporter.sendMail(reviewerMailOptions),
-        transporter.sendMail(authorMailOptions)
-      ]);
-    } else {
-      // Only send email to reviewer
-      await transporter.sendMail(reviewerMailOptions);
+      // Email to reviewers
+      const reviewerEmails = paper.reviewers.map(reviewer => ({
+        from: process.env.EMAIL_FROM,
+        to: reviewer.email,
+        subject: `Paper Verdict: ${paper.title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Paper Verdict</h2>
+            <p>Hello ${reviewer.name},</p>
+            <p>The paper you reviewed has reached a verdict:</p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Paper Title:</strong> ${paper.title}</p>
+              <p><strong>Conference:</strong> ${paper.conferenceId.title}</p>
+              <p><strong>Author:</strong> ${paper.author.name}</p>
+              <p><strong>Verdict:</strong> ${newStatus}</p>
+            </div>
+            <p>Best regards,<br>The Conference Management Team</p>
+          </div>
+        `
+      }));
+
+      await Promise.all(reviewerEmails.map(email => transporter.sendMail(email)));
+    } catch (emailError) {
+      console.error("Error sending email notifications:", emailError);
+      // Don't fail the request if email fails
     }
 
     return NextResponse.json({
       success: true,
-      review: {
-        _id: review._id.toString(),
-        status: review.status,
+      message: "Verdict updated successfully",
+      data: {
         paper: {
-          _id: review.paper._id.toString(),
-          title: review.paper.title
+          _id: paper._id,
+          title: paper.title,
+          status: paper.status
         }
       }
     });
 
   } catch (error) {
     console.error("Error in POST /api/admin/review-verdict:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: process.env.NODE_ENV === 'development' ? error.message : undefined },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Failed to update verdict" 
+    }, { status: 500 });
   }
 } 

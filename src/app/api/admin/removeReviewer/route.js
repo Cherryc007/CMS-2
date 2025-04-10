@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
 import Review from "@/models/reviewModel";
@@ -9,139 +8,130 @@ import transporter from "@/lib/nodemailer";
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { paperId, reviewerId } = await request.json();
-    if (!paperId || !reviewerId) {
-      return NextResponse.json({ error: "Paper ID and Reviewer ID are required" }, { status: 400 });
+    const session = await auth();
+    
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - Admin access required" 
+      }, { status: 401 });
     }
 
     await connectDB();
 
-    // Get paper and reviewer details
+    const { paperId, reviewerId } = await request.json();
+
+    if (!paperId || !reviewerId) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper ID and Reviewer ID are required" 
+      }, { status: 400 });
+    }
+
+    // Find the paper and reviewer
     const paper = await Paper.findById(paperId)
       .populate('author', 'name email')
-      .populate('conferenceId', 'name')
-      .lean();
-
-    if (!paper) {
-      return NextResponse.json({ error: "Paper not found" }, { status: 404 });
-    }
-
+      .populate('conferenceId', 'title');
+    
     const reviewer = await User.findById(reviewerId);
-    if (!reviewer || reviewer.role !== "reviewer") {
-      return NextResponse.json({ error: "Invalid reviewer" }, { status: 400 });
+
+    if (!paper || !reviewer) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper or reviewer not found" 
+      }, { status: 404 });
     }
 
-    // Check if reviewer is assigned
-    if (!paper.reviewers.some(r => r.toString() === reviewerId)) {
-      return NextResponse.json({ error: "Reviewer not assigned to this paper" }, { status: 400 });
+    // Check if reviewer is assigned to the paper
+    if (!paper.reviewers.includes(reviewerId)) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Reviewer is not assigned to this paper" 
+      }, { status: 400 });
     }
 
-    // Update paper to remove reviewer
-    const updatedPaper = await Paper.findByIdAndUpdate(
-      paperId,
-      {
-        $pull: { reviewers: reviewerId }
-      },
-      { new: true }
-    ).populate('reviewers', 'name email');
+    // Remove reviewer from paper
+    paper.reviewers = paper.reviewers.filter(id => id.toString() !== reviewerId);
+    await paper.save();
 
-    // Delete associated review
-    await Review.findOneAndDelete({
+    // Remove review from paper
+    const review = await Review.findOneAndDelete({
       paper: paperId,
       reviewer: reviewerId
     });
 
+    if (review) {
+      paper.reviews = paper.reviews.filter(id => id.toString() !== review._id.toString());
+      await paper.save();
+    }
+
     // Send email notifications
     try {
       // Email to reviewer
-      const reviewerMailOptions = {
-        from: process.env.GMAIL_ID,
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
         to: reviewer.email,
-        subject: `Review Assignment Removed: ${paper.title}`,
+        subject: "Paper Review Assignment Removed",
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <h2 style="color: #2563eb; margin-bottom: 20px;">Review Assignment Removed</h2>
-            <p>Dear ${reviewer.name},</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Review Assignment Removed</h2>
+            <p>Hello ${reviewer.name},</p>
             <p>You have been removed as a reviewer for the following paper:</p>
-            <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
-              <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
-              <p style="margin-bottom: 5px;"><strong>Title:</strong> ${paper.title}</p>
-              <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conferenceId.name}</p>
-              <p style="margin-bottom: 0;"><strong>Removal Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Paper Title:</strong> ${paper.title}</p>
+              <p><strong>Conference:</strong> ${paper.conferenceId.title}</p>
+              <p><strong>Author:</strong> ${paper.author.name}</p>
             </div>
-            <p>If you have any questions, please contact the conference management team.</p>
-            <p>Best regards,<br />Conference Management Team</p>
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #6b7280;">
-              <p>This is an automated message. Please do not reply to this email.</p>
-            </div>
+            <p>Best regards,<br>The Conference Management Team</p>
           </div>
         `
-      };
+      });
 
       // Email to author
-      const authorMailOptions = {
-        from: process.env.GMAIL_ID,
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM,
         to: paper.author.email,
-        subject: `Reviewer Removed from Your Paper: ${paper.title}`,
+        subject: "Reviewer Removed from Your Paper",
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <h2 style="color: #2563eb; margin-bottom: 20px;">Reviewer Removed</h2>
-            <p>Dear ${paper.author.name},</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Reviewer Removed</h2>
+            <p>Hello ${paper.author.name},</p>
             <p>A reviewer has been removed from your paper:</p>
-            <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
-              <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
-              <p style="margin-bottom: 5px;"><strong>Title:</strong> ${paper.title}</p>
-              <p style="margin-bottom: 5px;"><strong>Removed Reviewer:</strong> ${reviewer.name}</p>
-              <p style="margin-bottom: 0;"><strong>Updated On:</strong> ${new Date().toLocaleDateString()}</p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Paper Title:</strong> ${paper.title}</p>
+              <p><strong>Reviewer:</strong> ${reviewer.name}</p>
             </div>
-            <p>You will be notified when a new reviewer is assigned.</p>
-            <p>Best regards,<br />Conference Management Team</p>
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #6b7280;">
-              <p>This is an automated message. Please do not reply to this email.</p>
-            </div>
+            <p>Best regards,<br>The Conference Management Team</p>
           </div>
         `
-      };
-
-      // Send emails in parallel
-      await Promise.all([
-        transporter.sendMail(reviewerMailOptions),
-        transporter.sendMail(authorMailOptions)
-      ]);
-
-      console.log('Reviewer removal emails sent successfully');
+      });
     } catch (emailError) {
-      console.error('Error sending email notifications:', emailError);
+      console.error("Error sending email notifications:", emailError);
       // Don't fail the request if email fails
     }
 
     return NextResponse.json({
       success: true,
-      paper: {
-        _id: updatedPaper._id.toString(),
-        title: updatedPaper.title,
-        status: updatedPaper.status,
-        reviewers: updatedPaper.reviewers.map(r => ({
-          _id: r._id.toString(),
-          name: r.name,
-          email: r.email
-        }))
+      message: "Reviewer removed successfully",
+      data: {
+        paper: {
+          _id: paper._id,
+          title: paper.title,
+          reviewers: paper.reviewers
+        },
+        reviewer: {
+          _id: reviewer._id,
+          name: reviewer.name,
+          email: reviewer.email
+        }
       }
     });
+
   } catch (error) {
-    console.error('Error in POST /api/admin/removeReviewer:', error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: process.env.NODE_ENV === 'development' ? error.message : undefined },
-      { status: 500 }
-    );
+    console.error("Error in POST /api/admin/removeReviewer:", error);
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Failed to remove reviewer" 
+    }, { status: 500 });
   }
 } 
