@@ -50,9 +50,12 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // Add reviewer to paper
-    paper.reviewers.push(reviewerId);
-    await paper.save();
+    // Add reviewer to paper without triggering validation
+    await Paper.findByIdAndUpdate(
+      paperId,
+      { $push: { reviewers: reviewerId } },
+      { runValidators: false } // Disable validation for this update
+    );
 
     // Create a new review document
     const review = new Review({
@@ -122,7 +125,7 @@ export async function POST(request) {
         paper: {
           _id: paper._id,
           title: paper.title,
-          reviewers: paper.reviewers
+          reviewers: [...paper.reviewers, reviewerId]
         },
         reviewer: {
           _id: reviewer._id,
@@ -133,7 +136,11 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error("Error in POST /api/admin/assignReviewer:", error);
+    console.error("Error in POST /api/admin/assignReviewer:", {
+      error: error.message,
+      stack: error.stack,
+      user: session?.user?.email || 'unknown'
+    });
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to assign reviewer" 
