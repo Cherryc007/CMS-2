@@ -7,8 +7,9 @@ import connectDB from "@/lib/connectDB";
 import transporter from "@/lib/nodemailer";
 
 export async function POST(request) {
+  let session;
   try {
-    const session = await auth();
+    session = await auth();
     
     if (!session || session.user.role !== "admin") {
       return NextResponse.json({ 
