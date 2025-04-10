@@ -21,9 +21,9 @@ export async function GET() {
 
     // Fetch all papers except FinalSubmitted ones
     const papers = await Paper.find({ status: { $ne: "FinalSubmitted" } })
-      .select('title abstract status fileUrl author conference reviewers createdAt')
+      .select('title abstract status fileUrl author conferenceId reviewers createdAt')
       .populate('author', 'name email')
-      .populate('conference', 'title')
+      .populate('conferenceId', 'title')
       .populate('reviewers', 'name email')
       .populate({
         path: 'reviews',
@@ -57,7 +57,7 @@ export async function GET() {
       status: paper.status,
       fileUrl: paper.fileUrl,
       author: paper.author,
-      conference: paper.conference,
+      conference: paper.conferenceId,
       reviewers: paper.reviewers,
       reviews: paper.reviews,
       createdAt: paper.createdAt,
