@@ -1,26 +1,27 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
 import Conference from "@/models/conferenceModel";
 import Review from "@/models/reviewModel";
-import { auth } from "@/auth";
 
 export async function GET(request) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     
     // Strict RBAC check
-    if (!session) {
+    if (!session || session.user.role !== "author") {
       return NextResponse.json({ 
         success: false, 
-        message: "Authentication required" 
+        message: "Unauthorized - Author access required" 
       }, { status: 401 });
     }
 
     await connectDB();
 
-    // Verify user exists and has author role
+    // Verify user exists
     const user = await User.findOne({ 
       email: session.user.email 
     });
@@ -30,14 +31,6 @@ export async function GET(request) {
         success: false, 
         message: "User not found" 
       }, { status: 404 });
-    }
-
-    // Check for author role
-    if (user.role !== "author") {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - Author access required" 
-      }, { status: 403 });
     }
 
     console.log(`Author ${user.email} fetching their papers`);

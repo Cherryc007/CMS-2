@@ -28,12 +28,49 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchPapersAndReviewers();
+    fetchConferences();
   }, []);
+
+  const fetchConferences = async () => {
+    try {
+      const response = await fetch('/api/conferences');
+      if (!response.ok) {
+        throw new Error('Failed to fetch conferences');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setConferences(data.activeConferences);
+      }
+    } catch (error) {
+      console.error('Error fetching conferences:', error);
+      toast.error('Failed to load conferences');
+    }
+  };
+
+  const fetchPapersAndReviewers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/admin/papers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch papers');
+      }
+      const data = await response.json();
+      setPapers(data.papers);
+      setReviewers(data.reviewers);
+      setStats(data.stats);
+      setFilteredPapers(data.papers); // Initialize filtered papers with all papers
+    } catch (error) {
+      console.error('Error fetching papers:', error);
+      toast.error('Failed to load papers');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedConference) {
       const filtered = papers.filter(
-        paper => paper.conferenceId?._id === selectedConference._id
+        paper => paper.conference?._id === selectedConference.id
       );
       setFilteredPapers(filtered);
       updateConferenceStats(filtered);
@@ -42,40 +79,6 @@ export default function AdminDashboard() {
       updateStats(papers);
     }
   }, [selectedConference, papers]);
-
-  const fetchPapersAndReviewers = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/admin/papers");
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch data");
-      }
-
-      // Ensure we have all required data
-      if (!data.papers || !Array.isArray(data.papers)) {
-        throw new Error("Invalid papers data received");
-      }
-
-      setPapers(data.papers);
-      setFilteredPapers(data.papers);
-      setReviewers(data.reviewers || []);
-      setConferences(data.conferences || []);
-      updateStats(data.papers);
-
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error(error.message || "Failed to load data");
-      // Set empty arrays as fallback
-      setPapers([]);
-      setFilteredPapers([]);
-      setReviewers([]);
-      setConferences([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const updateStats = (papers) => {
     const totalPapers = papers.length;

@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
 import Conference from "@/models/conferenceModel";
 import User from "@/models/userModel";
-import { auth } from "@/auth";
 import { uploadToBlob, validateFileUpload } from "@/lib/blobUtils";
 
 export async function POST(request) {
   try {
     console.log('Starting paper submission process...');
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     
     // Check if user is authenticated and has author role
     if (!session || session.user.role !== "author") {
@@ -79,7 +80,7 @@ export async function POST(request) {
       title,
       abstract,
       conferenceId,
-      author: user._id, // Use the MongoDB _id from the user document
+      author: user._id,
       fileUrl: url,
       filePath: pathname,
       status: "Pending"

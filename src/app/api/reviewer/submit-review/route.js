@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Review from "@/models/reviewModel";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
-import { auth } from "@/auth";
 
 export async function POST(request) {
   try {
     console.log('Starting review submission process...');
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     
     // Check if user is authenticated and has reviewer role
     if (!session || session.user.role !== "reviewer") {
@@ -77,7 +78,7 @@ export async function POST(request) {
       comments,
       recommendation,
       score,
-      status: "Pending Admin Approval", // New status for admin approval workflow
+      status: "Pending Admin Approval",
       submittedAt: new Date()
     });
 

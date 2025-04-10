@@ -1,39 +1,30 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
 import { uploadToBlob, validateFileUpload } from '@/lib/blobUtils';
 
 export async function POST(request) {
   try {
-    console.log('Starting file upload process...');
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     
-    // Check if user is authenticated
-    if (!session) {
+    // Check if user is authenticated and has either author or reviewer role
+    if (!session || !["author", "reviewer"].includes(session.user.role)) {
       return NextResponse.json({ 
         success: false, 
-        message: "Unauthorized - You must be logged in to upload files" 
+        message: "Unauthorized - Only authors and reviewers can upload files" 
       }, { status: 401 });
     }
-
-    // Check role
-    if (session.user.role !== "author") {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - Only authors can upload files" 
-      }, { status: 403 });
-    }
-
-    // Handle file upload
+    
     const formData = await request.formData();
     const file = formData.get('file');
-
+    
     if (!file) {
       return NextResponse.json({ 
         success: false, 
-        message: "No file uploaded" 
+        message: "No file provided" 
       }, { status: 400 });
     }
-
+    
     // Validate file upload
     const validationResult = await validateFileUpload(file);
     if (!validationResult.valid) {
@@ -42,19 +33,19 @@ export async function POST(request) {
         message: validationResult.error 
       }, { status: 400 });
     }
-
-    console.log('Uploading file to Vercel Blob...');
+    
     // Upload file to Vercel Blob
-    const { url, pathname } = await uploadToBlob(file, 'papers');
-    console.log('File uploaded successfully:', { url, pathname });
-
+    const { url, pathname } = await uploadToBlob(file, 'uploads');
+    
     return NextResponse.json({ 
       success: true, 
       message: "File uploaded successfully",
-      fileUrl: url,
-      filePath: pathname
+      data: {
+        url,
+        pathname
+      }
     }, { status: 200 });
-
+    
   } catch (error) {
     console.error("Error uploading file:", error);
     return NextResponse.json({ 

@@ -1,126 +1,105 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/connectDB";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 import Paper from "@/models/paperModel";
 import User from "@/models/userModel";
 import Conference from "@/models/conferenceModel";
 import Review from "@/models/reviewModel";
-import { auth } from "@/auth";
+import connectDB from "@/lib/connectDB";
 
-export async function GET(request) {
+export async function GET() {
   try {
-    const session = await auth();
-    
-    // Strict RBAC check
+    const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Authentication required" 
-      }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await connectDB();
 
-    // Verify user exists and has admin role
-    const user = await User.findOne({ 
-      email: session.user.email 
-    });
-
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - Admin access required" 
-      }, { status: 403 });
-    }
-
-    // Get all papers with their relationships
-    const papers = await Paper.find()
+    // Get all papers with their related data
+    const papers = await Paper.find({ status: { $ne: "FinalSubmitted" } })
       .populate('author', 'name email')
-      .populate('conferenceId', 'name startDate endDate')
+      .populate('conferenceId', 'name')
       .populate('reviewers', 'name email')
       .populate({
         path: 'reviews',
+        select: 'status recommendation score',
         populate: {
           path: 'reviewer',
           select: 'name email'
         }
       })
-      .sort({ submittedAt: -1 });
+      .select('title abstract status createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .lean();
 
-    console.log(`Admin ${user.email} fetched ${papers.length} papers`);
+    // Get all reviewers
+    const reviewers = await User.find({ role: "reviewer" })
+      .select('name email')
+      .lean();
 
-    // Get all active reviewers
-    const reviewers = await User.find({ 
-      role: "reviewer",
-      isActive: true 
-    }).select('name email').lean();
+    // Calculate statistics
+    const stats = {
+      total: papers.length,
+      underReview: papers.filter(p => p.status === "Under Review").length,
+      accepted: papers.filter(p => p.status === "Accepted").length,
+      rejected: papers.filter(p => p.status === "Rejected").length,
+      revisionRequired: papers.filter(p => p.status === "Revision Required").length
+    };
 
-    console.log(`Found ${reviewers.length} active reviewers`);
-
-    // Format papers for response
+    // Format the response
     const formattedPapers = papers.map(paper => ({
       _id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
       status: paper.status,
-      fileUrl: paper.fileUrl,
-      submittedAt: paper.submittedAt,
-      author: paper.author ? {
+      createdAt: paper.createdAt,
+      updatedAt: paper.updatedAt,
+      author: {
         _id: paper.author._id.toString(),
         name: paper.author.name,
         email: paper.author.email
-      } : null,
+      },
       conference: paper.conferenceId ? {
         _id: paper.conferenceId._id.toString(),
-        name: paper.conferenceId.name,
-        startDate: paper.conferenceId.startDate,
-        endDate: paper.conferenceId.endDate
+        name: paper.conferenceId.name
       } : null,
-      reviewers: (paper.reviewers || []).map(reviewer => ({
+      reviewers: paper.reviewers.map(reviewer => ({
         _id: reviewer._id.toString(),
         name: reviewer.name,
         email: reviewer.email
       })),
-      reviews: (paper.reviews || []).map(review => ({
+      reviews: paper.reviews.map(review => ({
         _id: review._id.toString(),
-        reviewer: review.reviewer ? {
+        status: review.status,
+        recommendation: review.recommendation,
+        score: review.score,
+        reviewer: {
           _id: review.reviewer._id.toString(),
           name: review.reviewer.name,
           email: review.reviewer.email
-        } : null,
-        status: review.status,
-        submittedAt: review.submittedAt
+        }
       }))
     }));
 
-    // Format reviewers for response
-    const formattedReviewers = reviewers.map(reviewer => ({
-      _id: reviewer._id.toString(),
-      name: reviewer.name,
-      email: reviewer.email
-    }));
-
-    // Calculate statistics
-    const stats = {
-      totalPapers: papers.length,
-      underReview: papers.filter(p => p.status === "Under Review").length,
-      accepted: papers.filter(p => p.status === "Accepted").length,
-      rejected: papers.filter(p => p.status === "Rejected").length,
-      revisionRequired: papers.filter(p => p.status === "Revision Required").length,
-      pendingAssignment: papers.filter(p => p.status === "Pending").length
-    };
-
-    return NextResponse.json({ 
-      success: true,
+    return NextResponse.json({
       papers: formattedPapers,
-      reviewers: formattedReviewers,
+      reviewers: reviewers.map(reviewer => ({
+        _id: reviewer._id.toString(),
+        name: reviewer.name,
+        email: reviewer.email
+      })),
       stats
-    }, { status: 200 });
-    
+    });
   } catch (error) {
-    console.error("Error fetching papers and reviewers:", error);
-    return NextResponse.json({ 
-      success: false, 
-      message: error.message || "Failed to fetch papers and reviewers" 
-    }, { status: 500 });
+    console.error('Error in GET /api/admin/papers:', error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: process.env.NODE_ENV === 'development' ? error.message : undefined },
+      { status: 500 }
+    );
   }
 } 
