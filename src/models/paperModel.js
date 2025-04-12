@@ -34,20 +34,14 @@ const paperSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, "Author is required"]
     },
-    conference: {
+    conferenceId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Conference',
         required: [true, "Conference is required"]
     },
     reviewers: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        validate: {
-            validator: function(v) {
-                return v.length <= 3; // Maximum 3 reviewers per paper
-            },
-            message: 'A paper cannot have more than 3 reviewers'
-        }
+        ref: 'User'
     }],
     reviews: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -79,8 +73,8 @@ const paperSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 paperSchema.index({ author: 1, status: 1 });
-paperSchema.index({ conference: 1 });
-paperSchema.index({ reviewers: 1 });
+paperSchema.index({ conferenceId: 1 });
+paperSchema.index({ reviewers: 1 }); // Add index for reviewer queries
 
 // Pre-save middleware to update lastUpdated
 paperSchema.pre('save', function(next) {

@@ -29,11 +29,10 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // Find the paper and reviewer with proper population
+    // Find the paper and reviewer
     const paper = await Paper.findById(paperId)
       .populate('author', 'name email')
-      .populate('conference', 'name')
-      .populate('reviewers', 'name email');
+      .populate('conferenceId', 'title');
     
     const reviewer = await User.findById(reviewerId);
 
@@ -45,37 +44,19 @@ export async function POST(request) {
     }
 
     // Check if reviewer is already assigned
-    if (paper.reviewers.some(r => r._id.toString() === reviewerId)) {
+    if (paper.reviewers.includes(reviewerId)) {
       return NextResponse.json({ 
         success: false, 
         message: "Reviewer is already assigned to this paper" 
       }, { status: 400 });
     }
 
-    // Check if paper already has maximum reviewers
-    if (paper.reviewers.length >= 3) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Maximum number of reviewers (3) already assigned" 
-      }, { status: 400 });
-    }
-
-    // Update paper with validation enabled
-    const updatedPaper = await Paper.findByIdAndUpdate(
+    // Add reviewer to paper without triggering validation
+    await Paper.findByIdAndUpdate(
       paperId,
-      { 
-        $push: { reviewers: reviewerId },
-        status: "Under Review"
-      },
-      { 
-        new: true,
-        runValidators: true 
-      }
-    ).populate('conference', 'name');
-
-    if (!updatedPaper) {
-      throw new Error("Failed to update paper");
-    }
+      { $push: { reviewers: reviewerId } },
+      { runValidators: false } // Disable validation for this update
+    );
 
     // Create a new review document
     const review = new Review({
@@ -105,7 +86,7 @@ export async function POST(request) {
             <p>You have been assigned to review a new paper:</p>
             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
               <p><strong>Paper Title:</strong> ${paper.title}</p>
-              <p><strong>Conference:</strong> ${paper.conference.name}</p>
+              <p><strong>Conference:</strong> ${paper.conferenceId.title}</p>
               <p><strong>Author:</strong> ${paper.author.name}</p>
             </div>
             <p>Please log in to your account to access and review the paper.</p>
@@ -126,33 +107,41 @@ export async function POST(request) {
             <p>A reviewer has been assigned to your paper:</p>
             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
               <p><strong>Paper Title:</strong> ${paper.title}</p>
-              <p><strong>Conference:</strong> ${paper.conference.name}</p>
               <p><strong>Reviewer:</strong> ${reviewer.name}</p>
             </div>
-            <p>You will be notified when the review is completed.</p>
+            <p>You will be notified when the review is submitted.</p>
             <p>Best regards,<br>The Conference Management Team</p>
           </div>
         `
       });
-
     } catch (emailError) {
-      console.error("Failed to send email notifications:", emailError);
+      console.error("Error sending email notifications:", emailError);
       // Don't fail the request if email fails
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Reviewer assigned successfully",
-      paper: updatedPaper,
-      reviewer: {
-        id: reviewer._id,
-        name: reviewer.name,
-        email: reviewer.email
+      data: {
+        paper: {
+          _id: paper._id,
+          title: paper.title,
+          reviewers: [...paper.reviewers, reviewerId]
+        },
+        reviewer: {
+          _id: reviewer._id,
+          name: reviewer.name,
+          email: reviewer.email
+        }
       }
     });
 
   } catch (error) {
-    console.error("Error in assignReviewer:", error);
+    console.error("Error in POST /api/admin/assignReviewer:", {
+      error: error.message,
+      stack: error.stack,
+      user: session?.user?.email || 'unknown'
+    });
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to assign reviewer" 
