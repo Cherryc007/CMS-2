@@ -13,27 +13,24 @@ const reviewSchema = new mongoose.Schema({
   },
   comments: {
     type: String,
-    required: [true, "Comments are required"],
     trim: true,
     maxlength: [5000, "Comments cannot be more than 5000 characters"]
   },
   recommendation: {
     type: String,
-    required: [true, "Recommendation is required"],
     enum: ['accept', 'reject', 'revise'],
     lowercase: true
   },
   score: {
     type: Number,
-    required: [true, "Score is required"],
     min: [1, "Score must be at least 1"],
     max: [5, "Score cannot be more than 5"]
   },
   status: {
     type: String,
     required: true,
-    enum: ['Pending Admin Approval', 'Approved', 'Rejected', 'Revision Required'],
-    default: 'Pending Admin Approval'
+    enum: ['Pending', 'Under Review', 'Submitted', 'Approved', 'Rejected', 'Revision Required'],
+    default: 'Pending'
   },
   adminVerdict: {
     type: Boolean,
@@ -43,8 +40,7 @@ const reviewSchema = new mongoose.Schema({
     type: Date
   },
   submittedAt: {
-    type: Date,
-    default: Date.now
+    type: Date
   },
   filePath: { 
     type: String,

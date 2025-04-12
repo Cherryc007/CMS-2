@@ -65,12 +65,7 @@ export async function POST(request) {
     const review = new Review({
       paper: paperId,
       reviewer: reviewerId,
-      status: "Pending",
-      score: 0,
-      recommendation: "",
-      comments: "",
-      createdAt: new Date(),
-      updatedAt: new Date()
+      status: "Under Review"
     });
 
     await review.save();
@@ -79,64 +74,49 @@ export async function POST(request) {
     try {
       // Email to reviewer
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+        from: process.env.SMTP_FROM,
         to: reviewer.email,
         subject: "New Paper Assignment",
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">New Paper Assignment</h2>
-            <p>Hello ${reviewer.name},</p>
-            <p>You have been assigned to review a new paper:</p>
-            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p><strong>Paper Title:</strong> ${paper.title}</p>
-              <p><strong>Conference:</strong> ${paper.conference.name}</p>
-              <p><strong>Author:</strong> ${paper.author.name}</p>
-            </div>
-            <p>Please log in to your account to access and review the paper.</p>
-            <p>Best regards,<br>The Conference Management Team</p>
-          </div>
+          <h2>New Paper Assignment</h2>
+          <p>You have been assigned to review a new paper:</p>
+          <p><strong>Paper Title:</strong> ${paper.title}</p>
+          <p><strong>Conference:</strong> ${paper.conference.name}</p>
+          <p>Please log in to your account to access and review the paper.</p>
         `
       });
 
       // Email to author
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+        from: process.env.SMTP_FROM,
         to: paper.author.email,
         subject: "Reviewer Assigned to Your Paper",
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Reviewer Assigned</h2>
-            <p>Hello ${paper.author.name},</p>
-            <p>A reviewer has been assigned to your paper:</p>
-            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p><strong>Paper Title:</strong> ${paper.title}</p>
-              <p><strong>Conference:</strong> ${paper.conference.name}</p>
-              <p><strong>Reviewer:</strong> ${reviewer.name}</p>
-            </div>
-            <p>You will be notified when the review is completed.</p>
-            <p>Best regards,<br>The Conference Management Team</p>
-          </div>
+          <h2>Reviewer Assigned</h2>
+          <p>A reviewer has been assigned to your paper:</p>
+          <p><strong>Paper Title:</strong> ${paper.title}</p>
+          <p><strong>Conference:</strong> ${paper.conference.name}</p>
+          <p><strong>Reviewer:</strong> ${reviewer.name}</p>
         `
       });
-
     } catch (emailError) {
       console.error("Error sending email notifications:", emailError);
       // Don't fail the request if email sending fails
     }
 
-    return NextResponse.json({
-      success: true,
+    return NextResponse.json({ 
+      success: true, 
       message: "Reviewer assigned successfully",
       paper: updatedPaper,
       reviewer: {
-        id: reviewer._id,
+        _id: reviewer._id,
         name: reviewer.name,
         email: reviewer.email
       }
-    });
+    }, { status: 200 });
 
   } catch (error) {
-    console.error("Error in POST /api/admin/assignReviewer:", error);
+    console.error("Error in assignReviewer:", error);
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to assign reviewer" 
