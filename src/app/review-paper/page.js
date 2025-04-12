@@ -12,9 +12,9 @@ function ReviewPaperContent({ paperId }) {
   
   const [paper, setPaper] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [feedback, setFeedback] = useState("");
-  const [rating, setRating] = useState(5);
-  const [reviewStatus, setReviewStatus] = useState("Accepted");
+  const [comments, setComments] = useState("");
+  const [score, setScore] = useState(5);
+  const [recommendation, setRecommendation] = useState("accept");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -105,7 +105,7 @@ function ReviewPaperContent({ paperId }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!feedback.trim()) {
+    if (!comments.trim()) {
       toast.error("Please provide feedback");
       return;
     }
@@ -119,9 +119,9 @@ function ReviewPaperContent({ paperId }) {
         },
         body: JSON.stringify({
           paperId,
-          feedback,
-          rating,
-          status: reviewStatus,
+          comments,
+          recommendation,
+          score,
           filePath,
           fileUrl
         }),
@@ -133,8 +133,7 @@ function ReviewPaperContent({ paperId }) {
         throw new Error(data.message || "Failed to submit review");
       }
 
-      toast.success("Review submitted successfully");
-      // Redirect to reviewer dashboard or show success message
+      toast.success("Review submitted successfully and pending admin approval");
       router.push("/reviewer-dashboard");
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -217,9 +216,9 @@ function ReviewPaperContent({ paperId }) {
                   <button
                     key={star}
                     type="button"
-                    onClick={() => setRating(star)}
+                    onClick={() => setScore(star)}
                     className={`text-2xl ${
-                      star <= rating ? "text-yellow-400" : "text-gray-300"
+                      star <= score ? "text-yellow-400" : "text-gray-300"
                     }`}
                   >
                     ★
@@ -230,26 +229,26 @@ function ReviewPaperContent({ paperId }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                Recommendation
               </label>
               <select
-                value={reviewStatus}
-                onChange={(e) => setReviewStatus(e.target.value)}
+                value={recommendation}
+                onChange={(e) => setRecommendation(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="Accepted">Accept</option>
-                <option value="Rejected">Reject</option>
-                <option value="Resubmitted">Request Resubmission</option>
+                <option value="accept">Accept</option>
+                <option value="reject">Reject</option>
+                <option value="revise">Request Revision</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Feedback
+                Comments
               </label>
               <textarea
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
                 rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Provide detailed feedback about the paper..."

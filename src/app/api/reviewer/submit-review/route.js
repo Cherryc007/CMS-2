@@ -1,125 +1,104 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Review from "@/models/reviewModel";
 import Paper from "@/models/paperModel";
-import User from "@/models/userModel";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { sendReviewSubmissionAlert } from "@/app/api/sendMail/reviewSubmissionAlert/route";
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    console.log('Starting review submission process...');
     const session = await auth();
-    
-    // Check if user is authenticated and has reviewer role
     if (!session || session.user.role !== "reviewer") {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Unauthorized - Only reviewers can submit reviews" 
-      }, { status: 401 });
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const data = await request.json();
-    const { paperId, comments, recommendation, score } = data;
+    const { paperId, comments, recommendation, score, filePath, fileUrl } = await req.json();
 
-    // Validate required fields
     if (!paperId || !comments || !recommendation || !score) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Missing required fields" 
-      }, { status: 400 });
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     await connectDB();
-    
-    // Get the reviewer's user ID from the database
-    const reviewer = await User.findOne({ email: session.user.email });
-    if (!reviewer) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Reviewer not found in the database" 
-      }, { status: 404 });
-    }
 
-    // Check if paper exists and reviewer is assigned
-    const paper = await Paper.findById(paperId);
+    // Check if reviewer is assigned to this paper
+    const paper = await Paper.findById(paperId).populate("reviewers");
     if (!paper) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "Paper not found" 
-      }, { status: 404 });
+      return NextResponse.json(
+        { message: "Paper not found" },
+        { status: 404 }
+      );
     }
 
-    // Verify reviewer is assigned to this paper
-    if (!paper.reviewers.some(reviewerId => reviewerId.toString() === reviewer._id.toString())) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "You are not assigned to review this paper" 
-      }, { status: 403 });
+    const isAssigned = paper.reviewers.some(
+      (reviewer) => reviewer._id.toString() === session.user.id
+    );
+
+    if (!isAssigned) {
+      return NextResponse.json(
+        { message: "You are not assigned to review this paper" },
+        { status: 403 }
+      );
     }
 
-    // Check if review already exists
-    const existingReview = await Review.findOne({
-      paper: paperId,
-      reviewer: reviewer._id
-    });
+    // Map recommendation to status
+    const statusMap = {
+      accept: "Submitted",
+      reject: "Submitted",
+      revise: "Submitted"
+    };
 
-    if (existingReview) {
-      return NextResponse.json({ 
-        success: false, 
-        message: "You have already submitted a review for this paper" 
-      }, { status: 400 });
-    }
-
-    // Create new review with pending admin approval status
     const review = await Review.create({
       paper: paperId,
-      reviewer: reviewer._id,
+      reviewer: session.user.id,
       comments,
       recommendation,
       score,
-      status: "Pending Admin Approval",
+      status: statusMap[recommendation],
+      filePath,
+      fileUrl,
       submittedAt: new Date()
     });
 
-    // Send email notification to admin
-    try {
-      const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/sendMail/reviewSubmissionAlert`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || ''
-        },
-        body: JSON.stringify({
-          reviewId: review._id.toString(),
-          paperId: paper._id.toString()
-        }),
-      });
-      
-      if (!emailResponse.ok) {
-        console.error("Failed to send email notifications, but review was submitted successfully");
-      }
-    } catch (emailError) {
-      console.error("Error sending email notifications:", emailError);
-    }
+    // Update paper status
+    paper.status = "Under Review";
+    await paper.save();
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Review submitted successfully and pending admin approval",
-      review: {
-        id: review._id.toString(),
-        comments: review.comments,
-        recommendation: review.recommendation,
-        score: review.score,
-        status: review.status,
-        submittedAt: review.submittedAt
-      }
-    }, { status: 201 });
-    
+    // Send email notification
+    await sendReviewSubmissionAlert({
+      paperId: paper._id,
+      paperTitle: paper.title,
+      reviewerName: session.user.name,
+      reviewerEmail: session.user.email,
+      status: review.status
+    });
+
+    return NextResponse.json(
+      {
+        message: "Review submitted successfully",
+        review: {
+          _id: review._id,
+          paper: paper._id,
+          reviewer: session.user.id,
+          comments: review.comments,
+          recommendation: review.recommendation,
+          score: review.score,
+          status: review.status,
+          submittedAt: review.submittedAt
+        }
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Error in POST /api/reviewer/submit-review:", error);
-    return NextResponse.json({ 
-      success: false, 
-      message: error.message || "Failed to submit review" 
-    }, { status: 500 });
+    console.error("Error submitting review:", error);
+    return NextResponse.json(
+      { message: "Failed to submit review", error: error.message },
+      { status: 500 }
+    );
   }
 } 
