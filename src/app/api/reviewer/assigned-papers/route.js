@@ -4,7 +4,7 @@ import Paper from "@/models/paperModel";
 import Review from "@/models/reviewModel";
 import User from "@/models/userModel";
 import Conference from "@/models/conferenceModel";
-import { connectDB } from "@/lib/connectDB";
+import connectDB from "@/lib/connectDB";
 
 export async function GET() {
   try {
