@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Review from "@/models/reviewModel";
 import Paper from "@/models/paperModel";
@@ -9,7 +8,7 @@ import User from "@/models/userModel";
 export async function POST(request) {
   try {
     console.log('Starting review submission process...');
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     // Check if user is authenticated and has reviewer role
     if (!session || session.user.role !== "reviewer") {
@@ -51,7 +50,7 @@ export async function POST(request) {
     }
 
     // Verify reviewer is assigned to this paper
-    if (!paper.reviewers.includes(reviewer._id)) {
+    if (!paper.reviewers.some(reviewerId => reviewerId.toString() === reviewer._id.toString())) {
       return NextResponse.json({ 
         success: false, 
         message: "You are not assigned to review this paper" 
@@ -117,7 +116,7 @@ export async function POST(request) {
     }, { status: 201 });
     
   } catch (error) {
-    console.error("Error submitting review:", error);
+    console.error("Error in POST /api/reviewer/submit-review:", error);
     return NextResponse.json({ 
       success: false, 
       message: error.message || "Failed to submit review" 

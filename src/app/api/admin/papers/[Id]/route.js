@@ -1,30 +1,25 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import connectDB from "@/lib/connectDB";
 import Paper from "@/models/paperModel";
+import User from "@/models/userModel";
+import Conference from "@/models/conferenceModel";
+import Review from "@/models/reviewModel";
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const { id } = params;
-    if (!id) {
-      return NextResponse.json(
-        { message: "Paper ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - Admin access required" 
+      }, { status: 401 });
     }
 
     await connectDB();
 
-    const paper = await Paper.findById(id)
+    const paper = await Paper.findById(params.Id)
       .populate("author", "name email")
       .populate("conference", "name")
       .populate("reviewers", "name email")
@@ -37,19 +32,16 @@ export async function GET(request, { params }) {
       });
 
     if (!paper) {
-      return NextResponse.json(
-        { message: "Paper not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper not found" 
+      }, { status: 404 });
     }
 
-    // Format the paper data
     const formattedPaper = {
-      _id: paper._id,
+      id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
-      keywords: paper.keywords,
-      fileUrl: paper.fileUrl,
       status: paper.status,
       submissionDate: paper.submissionDate,
       author: paper.author,
@@ -65,12 +57,16 @@ export async function GET(request, { params }) {
       }))
     };
 
-    return NextResponse.json({ paper: formattedPaper });
+    return NextResponse.json({ 
+      success: true, 
+      paper: formattedPaper 
+    }, { status: 200 });
+
   } catch (error) {
-    console.error("Error fetching paper details:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error in GET /api/admin/papers/[Id]:", error);
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Failed to fetch paper details" 
+    }, { status: 500 });
   }
 } 
