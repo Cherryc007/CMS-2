@@ -79,7 +79,6 @@ function ReviewerDashboardContent() {
     }
     
     try {
-      // Create a temporary anchor element to trigger download
       const link = document.createElement('a');
       link.href = paper.fileUrl;
       link.target = '_blank';

@@ -44,7 +44,7 @@ export async function POST(request) {
     }
 
     // Check if reviewer is already assigned
-    if (paper.reviewers.includes(reviewerId)) {
+    if (paper.reviewers.some(reviewerId => reviewerId.toString() === reviewerId)) {
       return NextResponse.json({ 
         success: false, 
         message: "Reviewer is already assigned to this paper" 
@@ -65,7 +65,7 @@ export async function POST(request) {
     const review = new Review({
       paper: paperId,
       reviewer: reviewerId,
-      status: "Under Review"
+      status: "Pending"
     });
 
     await review.save();

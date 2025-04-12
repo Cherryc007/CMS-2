@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
     }
     
     // Check if the current user is assigned as reviewer
-    if (!paper.reviewers || !paper.reviewers.includes(session.user.id)) {
+    if (!paper.reviewers || !paper.reviewers.some(reviewerId => reviewerId.toString() === session.user.id)) {
       return NextResponse.json({ 
         success: false, 
         message: "You are not assigned to review this paper" 
