@@ -31,15 +31,15 @@ export async function GET() {
     // Fetch papers assigned to the reviewer
     const papers = await Paper.find({
       reviewers: session.user.id,
-      status: { $in: ["UnderReview", "RevisionRequired"] }
+      status: { $in: ["Under Review", "Revision Required"] }
     })
-      .select('title abstract status fileUrl author conference createdAt')
+      .select('title abstract status fileUrl filePath author conference createdAt')
       .populate('author', 'name email')
-      .populate('conference', 'title')
+      .populate('conference', 'name')
       .populate({
         path: 'reviews',
         match: { reviewer: session.user.id },
-        select: 'status verdict comments createdAt'
+        select: 'status comments recommendation score submittedAt'
       })
       .sort({ createdAt: -1 });
 
@@ -47,33 +47,32 @@ export async function GET() {
     const stats = {
       totalAssigned: papers.length,
       pendingReviews: papers.filter(p => !p.reviews.length).length,
-      underRevision: papers.filter(p => p.status === "RevisionRequired").length
+      underRevision: papers.filter(p => p.status === "Revision Required").length
     };
 
     // Format papers for response
     const formattedPapers = papers.map(paper => ({
-      _id: paper._id,
+      id: paper._id.toString(),
       title: paper.title,
       abstract: paper.abstract,
       status: paper.status,
       fileUrl: paper.fileUrl,
-      author: paper.author,
-      conference: paper.conference,
-      review: paper.reviews[0] || null,
-      createdAt: paper.createdAt
+      filePath: paper.filePath,
+      author: paper.author ? {
+        name: paper.author.name,
+        email: paper.author.email
+      } : null,
+      conference: paper.conference ? paper.conference.name : "N/A",
+      submissionDate: new Date(paper.createdAt).toLocaleDateString(),
+      hasReview: paper.reviews && paper.reviews.length > 0,
+      review: paper.reviews[0] || null
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        papers: formattedPapers,
-        stats,
-        reviewer: {
-          name: reviewer.name,
-          email: reviewer.email
-        }
-      }
-    });
+    return NextResponse.json({ 
+      success: true, 
+      papers: formattedPapers,
+      stats 
+    }, { status: 200 });
 
   } catch (error) {
     console.error("Error in GET /api/reviewer/assigned-papers:", error);

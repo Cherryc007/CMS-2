@@ -34,7 +34,7 @@ function ReviewerDashboardContent() {
   const fetchAssignedPapers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/reviewer/papers");
+      const response = await fetch("/api/reviewer/assigned-papers");
       const data = await response.json();
       
       if (!response.ok) {
@@ -42,16 +42,10 @@ function ReviewerDashboardContent() {
       }
       
       setPapers(data.papers);
-      
-      // Calculate statistics
-      const total = data.papers.length;
-      const reviewed = data.papers.filter(p => p.hasReview).length;
-      const pending = total - reviewed;
-      
       setStats({
-        total,
-        pending,
-        reviewed
+        total: data.stats.totalAssigned,
+        pending: data.stats.pendingReviews,
+        reviewed: data.stats.totalAssigned - data.stats.pendingReviews
       });
     } catch (error) {
       console.error("Error fetching papers:", error);
@@ -71,10 +65,8 @@ function ReviewerDashboardContent() {
         return "bg-green-100 text-green-800";
       case "Rejected":
         return "bg-red-100 text-red-800";
-      case "Resubmitted":
+      case "Revision Required":
         return "bg-purple-100 text-purple-800";
-      case "FinalSubmitted":
-        return "bg-teal-100 text-teal-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -191,7 +183,7 @@ function ReviewerDashboardContent() {
                         {paper.title}
                       </h2>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        By {paper.author} • {paper.conference}
+                        By {paper.author?.name || "Unknown Author"} • {paper.conference}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
                         Submitted on {paper.submissionDate}
@@ -209,45 +201,33 @@ function ReviewerDashboardContent() {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Button
-                        onClick={() => handleDownload(paper)}
-                        className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Paper
-                      </Button>
-                    </div>
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      onClick={() => handleDownload(paper)}
+                      className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Paper
+                    </Button>
                     
-                    <div className="flex items-center space-x-4">
-                      {!paper.hasReview && (
-                        <Button
-                          onClick={() => router.push(`/review-paper?id=${paper.id}`)}
-                          className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Review
-                        </Button>
-                      )}
-                      {paper.hasReview && (
-                        <Button
-                          onClick={() => router.push(`/review-history?paperId=${paper.id}`)}
-                          className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Review
-                        </Button>
-                      )}
-                      
+                    {!paper.hasReview && (
                       <Button
-                        onClick={() => router.push(`/paper-details?id=${paper.id}`)}
-                        variant="outline"
-                        className="inline-flex items-center"
+                        onClick={() => router.push(`/review-paper?id=${paper.id}`)}
+                        className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
                       >
-                        View Details
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Review
                       </Button>
-                    </div>
+                    )}
+                    {paper.hasReview && (
+                      <Button
+                        onClick={() => router.push(`/review-history?paperId=${paper.id}`)}
+                        className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Review
+                      </Button>
+                    )}
                   </div>
                 </div>
               </motion.div>
