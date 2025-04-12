@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       setPapers(data.papers);
       setReviewers(data.reviewers);
       setStats(data.stats);
-      setFilteredPapers(data.papers); // Initialize filtered papers with all papers
+      setFilteredPapers(data.papers);
     } catch (error) {
       console.error('Error fetching papers:', error);
       toast.error('Failed to load papers');
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedConference) {
       const filtered = papers.filter(
-        paper => paper.conference?._id === selectedConference.id
+        paper => paper.conference?._id === selectedConference._id
       );
       setFilteredPapers(filtered);
       updateConferenceStats(filtered);
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
     const underReview = papers.filter(p => p.status === "Under Review").length;
     const accepted = papers.filter(p => p.status === "Accepted").length;
     const rejected = papers.filter(p => p.status === "Rejected").length;
-    const pendingReviews = papers.filter(p => p.status === "Pending Review").length;
+    const pendingReviews = papers.filter(p => p.status === "Pending").length;
 
     setStats({
       totalPapers,
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
     const underReview = papers.filter(p => p.status === "Under Review").length;
     const accepted = papers.filter(p => p.status === "Accepted").length;
     const rejected = papers.filter(p => p.status === "Rejected").length;
-    const pendingReviews = papers.filter(p => p.status === "Pending Review").length;
+    const pendingReviews = papers.filter(p => p.status === "Pending").length;
 
     setStats({
       totalPapers,
@@ -173,10 +173,10 @@ export default function AdminDashboard() {
       
       // Update papers state with the newly assigned reviewer
       setPapers(papers.map(paper => {
-        if (paper.id === paperId) {
+        if (paper._id === paperId) {
           return {
             ...paper,
-            reviewers: [{ id: data.reviewer.id, name: data.reviewer.name }],
+            reviewers: [...paper.reviewers, data.reviewer],
             status: "Under Review",
           };
         }
@@ -216,10 +216,10 @@ export default function AdminDashboard() {
       
       // Update papers state by removing the reviewer
       setPapers(papers.map(paper => {
-        if (paper.id === paperId) {
+        if (paper._id === paperId) {
           return {
             ...paper,
-            reviewers: [],
+            reviewers: paper.reviewers.filter(r => r._id !== reviewerId),
             status: "Pending",
           };
         }
@@ -364,7 +364,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-
+      
       {/* Papers List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <h2 className="text-xl font-semibold p-4 border-b border-gray-200">

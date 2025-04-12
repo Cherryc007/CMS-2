@@ -21,9 +21,9 @@ export async function GET() {
 
     // Fetch all papers except FinalSubmitted ones
     const papers = await Paper.find({ status: { $ne: "FinalSubmitted" } })
-      .select('title abstract status fileUrl author conferenceId reviewers createdAt')
+      .select('title abstract status fileUrl author conference reviewers createdAt')
       .populate('author', 'name email')
-      .populate('conferenceId', 'title')
+      .populate('conference', 'name')
       .populate('reviewers', 'name email')
       .populate({
         path: 'reviews',
@@ -43,10 +43,10 @@ export async function GET() {
     // Calculate statistics
     const stats = {
       totalPapers: papers.length,
-      underReview: papers.filter(p => p.status === "UnderReview").length,
+      underReview: papers.filter(p => p.status === "Under Review").length,
       accepted: papers.filter(p => p.status === "Accepted").length,
       rejected: papers.filter(p => p.status === "Rejected").length,
-      pendingReviews: papers.filter(p => p.status === "UnderReview").length
+      pendingReviews: papers.filter(p => p.status === "Pending").length
     };
 
     // Format papers for response
@@ -57,7 +57,7 @@ export async function GET() {
       status: paper.status,
       fileUrl: paper.fileUrl,
       author: paper.author,
-      conference: paper.conferenceId,
+      conference: paper.conference,
       reviewers: paper.reviewers,
       reviews: paper.reviews,
       createdAt: paper.createdAt,

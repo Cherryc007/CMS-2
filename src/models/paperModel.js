@@ -34,7 +34,7 @@ const paperSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, "Author is required"]
     },
-    conferenceId: {
+    conference: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Conference',
         required: [true, "Conference is required"]
@@ -73,7 +73,7 @@ const paperSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 paperSchema.index({ author: 1, status: 1 });
-paperSchema.index({ conferenceId: 1 });
+paperSchema.index({ conference: 1 });
 paperSchema.index({ reviewers: 1 }); // Add index for reviewer queries
 
 // Pre-save middleware to update lastUpdated

@@ -59,8 +59,6 @@ export async function GET(request) {
     // Process conferences and separate into active and expired
     allConferences.forEach(conference => {
       const deadlineDate = new Date(conference.submissionDeadline);
-      const startDate = new Date(conference.startDate);
-      const endDate = new Date(conference.endDate);
       
       // Calculate days remaining until deadline
       const msPerDay = 1000 * 60 * 60 * 24;
@@ -68,12 +66,10 @@ export async function GET(request) {
       
       // Format conference data for frontend consumption
       const formattedConference = {
-        id: conference._id.toString(),
+        _id: conference._id.toString(),
         name: conference.name,
         description: conference.description,
         location: conference.location,
-        startDate: conference.startDate,
-        endDate: conference.endDate,
         submissionDeadline: conference.submissionDeadline,
         daysRemaining: daysRemaining > 0 ? daysRemaining : 0
       };
