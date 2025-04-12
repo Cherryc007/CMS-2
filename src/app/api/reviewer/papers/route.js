@@ -21,10 +21,10 @@ export async function GET(request) {
     
     // Fetch only papers assigned to the current reviewer
     const papers = await Paper.find({ 
-      reviewer: session.user.id 
+      reviewers: session.user.id 
     })
     .populate('author', 'name email')
-    .populate('conferenceId', 'name')
+    .populate('conference', 'name')
     .populate({
       path: 'reviews',
       match: { reviewer: session.user.id },
@@ -42,13 +42,13 @@ export async function GET(request) {
       author: paper.author ? paper.author.name : "Unknown Author",
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status,
-      conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
+      conference: paper.conference ? paper.conference.name : "No Conference",
       // Set hasReview to true if there's a review by the current reviewer
       hasReview: paper.reviews && paper.reviews.length > 0,
-      reviewers: paper.reviewer ? [{
-        id: paper.reviewer._id.toString(),
-        name: paper.reviewer.name
-      }] : []
+      reviewers: paper.reviewers ? paper.reviewers.map(r => ({
+        id: r._id.toString(),
+        name: r.name
+      })) : []
     }));
     
     console.log("Formatted papers:", formattedPapers.map(p => ({ 
@@ -63,10 +63,10 @@ export async function GET(request) {
     }, { status: 200 });
     
   } catch (error) {
-    console.error("Error fetching assigned papers:", error);
+    console.error("Error in GET /api/reviewer/papers:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Failed to fetch assigned papers" 
+      message: error.message || "Failed to fetch papers" 
     }, { status: 500 });
   }
 } 

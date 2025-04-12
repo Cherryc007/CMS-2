@@ -93,7 +93,10 @@ function PaperDetailsContent() {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>By {paper.author?.name}</span>
               <span>•</span>
-              <span>{paper.conferenceId?.name}</span>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold">Conference:</span>
+                <span>{paper.conference?.name}</span>
+              </div>
               <span>•</span>
               <span>Submitted on {new Date(paper.submissionDate).toLocaleDateString()}</span>
             </div>

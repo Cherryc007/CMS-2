@@ -36,7 +36,7 @@ export async function GET(request) {
 
     // Get all papers by this author
     const papers = await Paper.find({ author: user._id })
-      .populate('conferenceId', 'name startDate endDate')
+      .populate('conference', 'name startDate endDate')
       .populate('reviewers', 'name email')
       .populate({
         path: 'reviews',
@@ -67,10 +67,10 @@ export async function GET(request) {
       fileUrl: paper.fileUrl,
       submittedAt: paper.submittedAt,
       conference: {
-        _id: paper.conferenceId?._id,
-        name: paper.conferenceId?.name,
-        startDate: paper.conferenceId?.startDate,
-        endDate: paper.conferenceId?.endDate
+        _id: paper.conference?._id,
+        name: paper.conference?.name,
+        startDate: paper.conference?.startDate,
+        endDate: paper.conference?.endDate
       },
       reviewers: paper.reviewers?.map(reviewer => ({
         name: reviewer.name

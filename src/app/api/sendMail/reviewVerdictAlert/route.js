@@ -30,10 +30,10 @@ export async function POST(request) {
       .populate('reviewer', 'name email')
       .populate({
         path: 'paper',
-        select: 'title author conferenceId',
+        select: 'title author conference',
         populate: [
           { path: 'author', select: 'name email' },
-          { path: 'conferenceId', select: 'name' }
+          { path: 'conference', select: 'name' }
         ]
       });
 
@@ -80,7 +80,7 @@ export async function POST(request) {
         <h3>Paper Details:</h3>
         <ul>
           <li><strong>Title:</strong> ${review.paper.title}</li>
-          <li><strong>Conference:</strong> ${review.paper.conferenceId.name}</li>
+          <li><strong>Conference:</strong> ${review.paper.conference.name}</li>
           <li><strong>Verdict:</strong> ${verdict.charAt(0).toUpperCase() + verdict.slice(1)}</li>
         </ul>
         <p>Please log in to your dashboard to view more details.</p>
@@ -99,7 +99,7 @@ export async function POST(request) {
           <h3>Paper Details:</h3>
           <ul>
             <li><strong>Title:</strong> ${review.paper.title}</li>
-            <li><strong>Conference:</strong> ${review.paper.conferenceId.name}</li>
+            <li><strong>Conference:</strong> ${review.paper.conference.name}</li>
             <li><strong>Recommendation:</strong> ${review.recommendation}</li>
             <li><strong>Score:</strong> ${review.score}/5</li>
           </ul>

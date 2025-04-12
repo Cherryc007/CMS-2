@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import transporter from "@/lib/nodemailer";
 import connectDB from "@/lib/connectDB";
-import User from "@/models/userModel";
 import Conference from "@/models/conferenceModel";
+import { transporter } from "@/lib/nodemailer";
+import User from "@/models/userModel";
 import { auth } from "@/auth";
 
 export async function POST(request) {
@@ -18,7 +18,7 @@ export async function POST(request) {
       }, { status: 401 });
     }
     
-    const { paperTitle, authorId, authorEmail, authorName, conferenceId } = await request.json();
+    const { paperTitle, authorId, authorEmail, authorName, Conferenceonference } = await request.json();
     
     if (!paperTitle || !authorId || !authorEmail || !conferenceId) {
       return NextResponse.json({ 

@@ -32,10 +32,10 @@ export async function POST(request) {
       .populate('reviewer', 'name email')
       .populate({
         path: 'paper',
-        select: 'title author conferenceId',
+        select: 'title author conference',
         populate: [
           { path: 'author', select: 'name email' },
-          { path: 'conferenceId', select: 'name' }
+          { path: 'conference', select: 'name' }
         ]
       });
 
@@ -79,7 +79,7 @@ export async function POST(request) {
         <h3>Details:</h3>
         <ul>
           <li><strong>Paper:</strong> ${review.paper.title}</li>
-          <li><strong>Conference:</strong> ${review.paper.conferenceId.name}</li>
+          <li><strong>Conference:</strong> ${review.paper.conference.name}</li>
           <li><strong>Author:</strong> ${review.paper.author.name}</li>
           <li><strong>Reviewer:</strong> ${review.reviewer.name}</li>
           <li><strong>Recommendation:</strong> ${review.recommendation}</li>
@@ -101,7 +101,7 @@ export async function POST(request) {
         <h3>Paper Details:</h3>
         <ul>
           <li><strong>Title:</strong> ${review.paper.title}</li>
-          <li><strong>Conference:</strong> ${review.paper.conferenceId.name}</li>
+          <li><strong>Conference:</strong> ${review.paper.conference.name}</li>
         </ul>
         <p>Your review is currently pending admin approval. You will be notified once it has been approved.</p>
         <p>Thank you for your contribution!</p>

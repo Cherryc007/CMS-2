@@ -26,8 +26,15 @@ export async function GET(request, { params }) {
 
     const paper = await Paper.findById(id)
       .populate("author", "name email")
-      .populate("conferenceId", "name")
-      .populate("reviewers.reviewer", "name email");
+      .populate("conference", "name")
+      .populate("reviewers", "name email")
+      .populate({
+        path: "reviews",
+        populate: {
+          path: "reviewer",
+          select: "name email"
+        }
+      });
 
     if (!paper) {
       return NextResponse.json(
@@ -46,11 +53,15 @@ export async function GET(request, { params }) {
       status: paper.status,
       submissionDate: paper.submissionDate,
       author: paper.author,
-      conferenceId: paper.conferenceId,
+      conference: paper.conference,
       reviewers: paper.reviewers.map(reviewer => ({
         reviewer: reviewer.reviewer,
         status: reviewer.status,
         review: reviewer.review
+      })),
+      reviews: paper.reviews.map(review => ({
+        reviewer: review.reviewer,
+        review: review.review
       }))
     };
 

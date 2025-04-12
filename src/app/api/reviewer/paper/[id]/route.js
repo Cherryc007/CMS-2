@@ -23,7 +23,7 @@ export async function GET(request, { params }) {
     // Fetch paper with populated author and conference details
     const paper = await Paper.findById(id)
       .populate('author', 'name email')
-      .populate('conferenceId', 'name')
+      .populate('conference', 'name')
       .lean();
     
     if (!paper) {
@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
     }
     
     // Check if the current user is assigned as reviewer
-    if (!paper.reviewer || paper.reviewer.toString() !== session.user.id) {
+    if (!paper.reviewers || !paper.reviewers.includes(session.user.id)) {
       return NextResponse.json({ 
         success: false, 
         message: "You are not assigned to review this paper" 
@@ -50,7 +50,7 @@ export async function GET(request, { params }) {
       filePath: paper.filePath,
       author: paper.author ? paper.author.name : "Unknown Author",
       authorEmail: paper.author ? paper.author.email : "",
-      conference: paper.conferenceId ? paper.conferenceId.name : "No Conference",
+      conference: paper.conference ? paper.conference.name : "No Conference",
       submissionDate: new Date(paper.createdAt).toLocaleDateString(),
       status: paper.status
     };
@@ -61,10 +61,10 @@ export async function GET(request, { params }) {
     }, { status: 200 });
     
   } catch (error) {
-    console.error("Error fetching paper:", error);
+    console.error("Error in GET /api/reviewer/paper/[id]:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Failed to fetch paper details" 
+      message: error.message || "Failed to fetch paper details" 
     }, { status: 500 });
   }
 } 

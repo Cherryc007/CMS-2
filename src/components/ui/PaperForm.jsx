@@ -15,9 +15,9 @@ export default function PaperForm({ onClose }) {
   const [isUploading, setIsUploading] = useState(false);
   const [conferences, setConferences] = useState([]);
   const [formData, setFormData] = useState({
-    conferenceId: "",
     title: "",
     abstract: "",
+    conference: "",
     filePath: "",
     fileUrl: ""
   });
@@ -130,8 +130,9 @@ export default function PaperForm({ onClose }) {
       const formDataToSubmit = new FormData();
       formDataToSubmit.append('title', formData.title);
       formDataToSubmit.append('abstract', formData.abstract);
-      formDataToSubmit.append('conferenceId', formData.conferenceId);
-      formDataToSubmit.append('file', selectedFile);
+      formDataToSubmit.append('conference', formData.conference);
+      formDataToSubmit.append('filePath', formData.filePath);
+      formDataToSubmit.append('fileUrl', formData.fileUrl);
 
       const response = await fetch('/api/author/submit-paper', {
         method: 'POST',
@@ -174,10 +175,10 @@ export default function PaperForm({ onClose }) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label
-            htmlFor="conferenceId"
+            htmlFor="conference"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
-            Select Conference
+            Conference *
           </label>
           {isLoadingConferences ? (
             <div className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 px-3 py-2 text-gray-400 dark:text-gray-500 shadow-sm sm:text-sm animate-pulse">
@@ -189,24 +190,24 @@ export default function PaperForm({ onClose }) {
             </div>
           ) : (
             <select
-              id="conferenceId"
-              name="conferenceId"
-              value={formData.conferenceId}
+              id="conference"
+              name="conference"
+              value={formData.conference}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               required
             >
               <option value="">Select a conference</option>
               {conferences.map((conference) => (
-                <option key={conference.id} value={conference.id}>
-                  {conference.name} - {conference.location} (Deadline: {conference.submissionDeadline}, {conference.daysRemaining} days left)
+                <option key={conference._id} value={conference._id}>
+                  {conference.name}
                 </option>
               ))}
             </select>
           )}
-          {conferences.length > 0 && formData.conferenceId && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {conferences.find(c => c.id === formData.conferenceId)?.description || ""}
+          {conferences.length > 0 && formData.conference && (
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {conferences.find(c => c._id === formData.conference)?.description || ""}
             </p>
           )}
         </div>

@@ -30,7 +30,7 @@ export async function POST(request) {
     await connectDB();
     
     // Get paper details
-    const paper = await Paper.findById(paperId).populate('conferenceId');
+    const paper = await Paper.findById(paperId).populate('conference');
     
     if (!paper) {
       return NextResponse.json({ 
@@ -68,11 +68,11 @@ export async function POST(request) {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
           <h2 style="color: #2563eb; margin-bottom: 20px;">New Review Assignment</h2>
           <p>Dear ${reviewer.name},</p>
-          <p>You have been assigned to review a paper for ${paper.conferenceId ? paper.conferenceId.name : 'a conference'}.</p>
+          <p>You have been assigned to review a paper for ${paper.conference ? paper.conference.name : 'a conference'}.</p>
           <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
             <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
             <p style="margin-bottom: 5px;"><strong>Title:</strong> ${paper.title}</p>
-            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conferenceId ? paper.conferenceId.name : 'Not specified'}</p>
+            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conference ? paper.conference.name : 'Not specified'}</p>
             <p style="margin-bottom: 0;"><strong>Assignment Date:</strong> ${new Date().toLocaleDateString()}</p>
           </div>
           <p>Please log in to your reviewer dashboard to access the paper and submit your review. Your expertise and feedback are greatly appreciated.</p>
@@ -97,7 +97,7 @@ export async function POST(request) {
           <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
             <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
             <p style="margin-bottom: 5px;"><strong>Title:</strong> ${paper.title}</p>
-            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conferenceId ? paper.conferenceId.name : 'Not specified'}</p>
+            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conference ? paper.conference.name : 'Not specified'}</p>
             <p style="margin-bottom: 5px;"><strong>New Status:</strong> Under Review</p>
             <p style="margin-bottom: 0;"><strong>Updated On:</strong> ${new Date().toLocaleDateString()}</p>
           </div>

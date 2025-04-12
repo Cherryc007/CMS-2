@@ -49,9 +49,8 @@ export async function POST(request) {
     
     // Get paper details with author and conference
     const paper = await Paper.findById(paperId)
-      .populate('author')
-      .populate('conferenceId')
-      .populate('reviewer');
+      .populate('conference')
+      .populate('author', 'name email');
     
     if (!paper) {
       return NextResponse.json({ 
@@ -80,7 +79,7 @@ export async function POST(request) {
           <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 3px;">
             <h3 style="margin-top: 0; color: #374151;">Paper Details:</h3>
             <p style="margin-bottom: 5px;"><strong>Title:</strong> ${paper.title}</p>
-            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conferenceId ? paper.conferenceId.name : 'Not specified'}</p>
+            <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conference ? paper.conference.name : 'Not specified'}</p>
             <p style="margin-bottom: 5px;"><strong>Decision:</strong> <span style="color: ${decision === 'Accepted' ? '#10b981' : decision === 'Rejected' ? '#ef4444' : '#6366f1'};">${decision}</span></p>
             <p style="margin-bottom: 0;"><strong>Updated On:</strong> ${new Date().toLocaleDateString()}</p>
           </div>
@@ -110,7 +109,7 @@ export async function POST(request) {
               <p style="margin-bottom: 5px;"><strong>Paper Title:</strong> ${paper.title}</p>
               <p style="margin-bottom: 5px;"><strong>Author:</strong> ${paper.author.name}</p>
               <p style="margin-bottom: 5px;"><strong>Reviewer:</strong> ${paper.reviewer ? paper.reviewer.name : 'Not specified'}</p>
-              <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conferenceId ? paper.conferenceId.name : 'Not specified'}</p>
+              <p style="margin-bottom: 5px;"><strong>Conference:</strong> ${paper.conference ? paper.conference.name : 'Not specified'}</p>
               <p style="margin-bottom: 5px;"><strong>Decision:</strong> <span style="color: ${decision === 'Accepted' ? '#10b981' : decision === 'Rejected' ? '#ef4444' : '#6366f1'};">${decision}</span></p>
               <p style="margin-bottom: 5px;"><strong>Rating:</strong> ${review.rating}/5</p>
               <p style="margin-bottom: 0;"><strong>Completion Date:</strong> ${new Date().toLocaleDateString()}</p>

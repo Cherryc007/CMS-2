@@ -86,7 +86,9 @@ export async function POST(request) {
       },
       { new: true }
     )
-    .populate('conferenceId', 'name')
+    .populate('author', 'name email')
+    .populate('conference', 'name')
+    .populate('reviewers', 'name email')
     .lean();
 
     console.log("Paper resubmitted successfully:", updatedPaper._id);
@@ -99,7 +101,7 @@ export async function POST(request) {
         title: updatedPaper.title,
         status: updatedPaper.status,
         version: updatedPaper.currentVersion,
-        conference: updatedPaper.conferenceId?.name
+        conference: updatedPaper.conference?.name
       }
     }, { status: 200 });
 
