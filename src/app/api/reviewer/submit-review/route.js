@@ -27,7 +27,10 @@ export async function POST(req) {
     await connectDB();
 
     // Check if reviewer is assigned to this paper
-    const paper = await Paper.findById(paperId).populate("reviewers");
+    const paper = await Paper.findById(paperId)
+      .populate("reviewers")
+      .populate("conference");
+      
     if (!paper) {
       return NextResponse.json(
         { message: "Paper not found" },
