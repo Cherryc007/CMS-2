@@ -58,7 +58,7 @@ export async function POST(request) {
         comments,
         recommendation,
         score,
-        status: "Submitted",
+        status: "Pending Admin Approval",
         submittedAt: new Date()
       });
     } else {
@@ -66,15 +66,29 @@ export async function POST(request) {
       review.comments = comments;
       review.recommendation = recommendation;
       review.score = score;
-      review.status = "Submitted";
+      review.status = "Pending Admin Approval";
       review.submittedAt = new Date();
     }
 
     await review.save();
 
+    // Send email notification
+    try {
+      await sendReviewSubmissionAlert({
+        paperId: paper._id,
+        paperTitle: paper.title,
+        reviewerName: session.user.name,
+        reviewerEmail: session.user.email,
+        status: review.status
+      });
+    } catch (emailError) {
+      console.error("Error sending review submission alert:", emailError);
+      // Don't fail the request if email sending fails
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: "Review submitted successfully",
+      message: "Review submitted successfully and pending admin approval",
       review: {
         _id: review._id,
         paper: review.paper,

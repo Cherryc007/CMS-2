@@ -211,7 +211,7 @@ function ReviewerDashboardContent() {
                     
                     {!paper.hasReview && (
                       <Button
-                        onClick={() => router.push(`/review-paper?id=${paper.id}`)}
+                        onClick={() => router.push(`/review-paper?id=${paper._id}`)}
                         className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -220,7 +220,7 @@ function ReviewerDashboardContent() {
                     )}
                     {paper.hasReview && (
                       <Button
-                        onClick={() => router.push(`/review-history?paperId=${paper.id}`)}
+                        onClick={() => router.push(`/review-history?paperId=${paper._id}`)}
                         className="inline-flex items-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded"
                       >
                         <Eye className="w-4 h-4 mr-2" />
