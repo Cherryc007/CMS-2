@@ -1,57 +1,115 @@
-import { formatDistanceToNow } from "date-fns";
-import { Star } from "lucide-react";
+"use client";
 
-const ReviewCard = ({ review }) => {
-  const {
-    comments,
-    recommendation,
-    score,
-    submittedAt,
-    reviewer,
-    paper
-  } = review;
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import ReviewCard from "@/components/ui/ReviewCard";
+import { Button } from "@/components/ui/button";
+
+export default function ReviewApprovalContent() {
+  const [pendingReviews, setPendingReviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPendingReviews();
+  }, []);
+
+  const fetchPendingReviews = async () => {
+    try {
+      const response = await fetch("/api/admin/pending-reviews");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch pending reviews");
+      }
+
+      setPendingReviews(data.reviews);
+    } catch (error) {
+      console.error("Error fetching pending reviews:", error);
+      toast.error(error.message || "Failed to load pending reviews");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproveReview = async (reviewId, verdict) => {
+    try {
+      const response = await fetch("/api/admin/review-verdict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reviewId,
+          verdict,
+          adminVerdict: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update review status");
+      }
+
+      toast.success("Review verdict submitted successfully");
+      // Remove the approved review from the list
+      setPendingReviews(prevReviews => 
+        prevReviews.filter(review => review._id !== reviewId)
+      );
+    } catch (error) {
+      console.error("Error updating review status:", error);
+      toast.error(error.message || "Failed to update review status");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (pendingReviews.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold text-gray-600">
+          No pending reviews to approve
+        </h2>
+        <p className="text-gray-500 mt-2">
+          All reviews have been processed
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-semibold">
-            Paper: {paper?.title}
-          </h3>
-          <p className="text-sm text-gray-500">
-            Reviewer: {reviewer?.name || "Anonymous"}
-          </p>
-          <p className="text-sm text-gray-500">
-            Submitted {formatDistanceToNow(new Date(submittedAt))} ago
-          </p>
+    <div className="space-y-6">
+      {pendingReviews.map((review) => (
+        <div key={review._id} className="bg-white rounded-lg shadow-sm p-6">
+          <ReviewCard review={review} />
+          <div className="mt-4 flex gap-4">
+            <Button
+              onClick={() => handleApproveReview(review._id, "approved")}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Approve Review
+            </Button>
+            <Button
+              onClick={() => handleApproveReview(review._id, "rejected")}
+              variant="destructive"
+            >
+              Reject Review
+            </Button>
+            <Button
+              onClick={() => handleApproveReview(review._id, "revision")}
+              variant="outline"
+            >
+              Request Revision
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          {[...Array(5)].map((_, index) => (
-            <Star
-              key={index}
-              className={`w-5 h-5 ${
-                index < score
-                  ? "text-yellow-400 fill-current"
-                  : "text-gray-300"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <div>
-          <h4 className="font-medium text-gray-700">Recommendation</h4>
-          <p className="mt-1 text-sm">{recommendation}</p>
-        </div>
-        
-        <div>
-          <h4 className="font-medium text-gray-700">Comments</h4>
-          <p className="mt-1 text-sm whitespace-pre-wrap">{comments}</p>
-        </div>
-      </div>
+      ))}
     </div>
   );
-};
-
-export default ReviewCard; 
+} 
