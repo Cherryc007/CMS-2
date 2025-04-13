@@ -23,9 +23,9 @@ export async function GET(request) {
     })
     .populate({
       path: 'paper',
-      select: 'title abstract status conferenceId',
+      select: 'title abstract status conference',
       populate: {
-        path: 'conferenceId',
+        path: 'conference',
         select: 'name'
       }
     })
@@ -41,7 +41,7 @@ export async function GET(request) {
           title: review.paper.title,
           abstract: review.paper.abstract,
           status: review.paper.status,
-          conference: review.paper.conferenceId?.name || 'N/A'
+          conference: review.paper.conference?.name || 'N/A'
         },
         reviewer: {
           _id: review.reviewer._id.toString(),

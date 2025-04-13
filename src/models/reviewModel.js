@@ -18,7 +18,7 @@ const reviewSchema = new mongoose.Schema({
   },
   recommendation: {
     type: String,
-    enum: ['accept', 'reject', 'revise'],
+    enum: ['accept', 'reject', 'revise', 'Revision Required'],
     lowercase: true
   },
   score: {
@@ -29,7 +29,7 @@ const reviewSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['Pending', 'Under Review', 'Submitted', 'Approved', 'Rejected', 'Revision Required'],
+    enum: ['Pending', 'Under Review', 'Submitted', 'Pending Admin Approval', 'Approved', 'Rejected', 'Revision Required'],
     default: 'Pending'
   },
   adminVerdict: {

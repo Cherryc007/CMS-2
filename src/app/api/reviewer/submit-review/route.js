@@ -72,6 +72,12 @@ export async function POST(request) {
 
     await review.save();
 
+    // Update paper status to Under Review if not already
+    if (paper.status !== "Under Review") {
+      paper.status = "Under Review";
+      await paper.save();
+    }
+
     // Send email notification
     try {
       await sendReviewSubmissionAlert({
