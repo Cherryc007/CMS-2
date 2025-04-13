@@ -26,6 +26,10 @@ export async function POST(req) {
 
     await connectDB();
 
+    console.log("Checking paper and reviewer assignment...");
+    console.log("Paper ID:", paperId);
+    console.log("Reviewer ID:", session.user.id);
+
     // Check if reviewer is assigned to this paper
     const paper = await Paper.findById(paperId)
       .populate("reviewers")
@@ -37,6 +41,12 @@ export async function POST(req) {
         { status: 404 }
       );
     }
+
+    console.log("Paper found:", {
+      id: paper._id,
+      title: paper.title,
+      reviewers: paper.reviewers.map(r => r._id.toString())
+    });
 
     const isAssigned = paper.reviewers.some(
       (reviewer) => reviewer._id.toString() === session.user.id
@@ -50,14 +60,28 @@ export async function POST(req) {
     }
 
     // Check if review already exists
+    console.log("Checking for existing review...");
     const existingReview = await Review.findOne({
       paper: paperId,
       reviewer: session.user.id
     });
 
     if (existingReview) {
+      console.log("Existing review found:", {
+        reviewId: existingReview._id,
+        paperId: existingReview.paper,
+        reviewerId: existingReview.reviewer,
+        status: existingReview.status,
+        submittedAt: existingReview.submittedAt
+      });
       return NextResponse.json(
-        { message: "You have already submitted a review for this paper" },
+        { 
+          message: "You have already submitted a review for this paper",
+          details: {
+            reviewId: existingReview._id,
+            submittedAt: existingReview.submittedAt
+          }
+        },
         { status: 400 }
       );
     }
@@ -69,6 +93,7 @@ export async function POST(req) {
       revise: "Submitted"
     };
 
+    console.log("Creating new review...");
     const review = await Review.create({
       paper: paperId,
       reviewer: session.user.id,
