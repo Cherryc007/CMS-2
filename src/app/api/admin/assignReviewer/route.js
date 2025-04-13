@@ -61,15 +61,6 @@ export async function POST(request) {
       { new: true }
     ).populate('reviewers', 'name email');
 
-    // Create a new review document
-    const review = new Review({
-      paper: paperId,
-      reviewer: reviewerId,
-      status: "Pending"
-    });
-
-    await review.save();
-
     // Send email notifications
     try {
       // Email to reviewer

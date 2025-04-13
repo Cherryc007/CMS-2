@@ -5,141 +5,93 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { sendReviewSubmissionAlert } from "@/app/api/sendMail/reviewSubmissionAlert/route";
 
-export async function POST(req) {
+export async function POST(request) {
+  let session;
   try {
-    const session = await auth();
+    session = await auth();
+    
     if (!session || session.user.role !== "reviewer") {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const { paperId, comments, recommendation, score, filePath, fileUrl } = await req.json();
-
-    if (!paperId || !comments || !recommendation || !score) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized - Reviewer access required" 
+      }, { status: 401 });
     }
 
     await connectDB();
 
-    console.log("Checking paper and reviewer assignment...");
-    console.log("Paper ID:", paperId);
-    console.log("Reviewer ID:", session.user.id);
+    const { paperId, comments, recommendation, score } = await request.json();
 
-    // Check if reviewer is assigned to this paper
-    const paper = await Paper.findById(paperId)
-      .populate("reviewers")
-      .populate("conference");
-      
+    if (!paperId || !comments || !recommendation || !score) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "All fields are required" 
+      }, { status: 400 });
+    }
+
+    // Check if paper exists and reviewer is assigned
+    const paper = await Paper.findById(paperId);
     if (!paper) {
-      return NextResponse.json(
-        { message: "Paper not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: "Paper not found" 
+      }, { status: 404 });
     }
 
-    console.log("Paper found:", {
-      id: paper._id,
-      title: paper.title,
-      reviewers: paper.reviewers.map(r => r._id.toString())
-    });
-
-    const isAssigned = paper.reviewers.some(
-      (reviewer) => reviewer._id.toString() === session.user.id
-    );
-
-    if (!isAssigned) {
-      return NextResponse.json(
-        { message: "You are not assigned to review this paper" },
-        { status: 403 }
-      );
+    if (!paper.reviewers.includes(session.user.id)) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "You are not assigned to review this paper" 
+      }, { status: 403 });
     }
 
-    // Check if review already exists
-    console.log("Checking for existing review...");
-    const existingReview = await Review.findOne({
+    // Find existing review or create new one
+    let review = await Review.findOne({
       paper: paperId,
       reviewer: session.user.id
     });
 
-    if (existingReview) {
-      console.log("Existing review found:", {
-        reviewId: existingReview._id,
-        paperId: existingReview.paper,
-        reviewerId: existingReview.reviewer,
-        status: existingReview.status,
-        submittedAt: existingReview.submittedAt
+    if (!review) {
+      // Create new review
+      review = new Review({
+        paper: paperId,
+        reviewer: session.user.id,
+        comments,
+        recommendation,
+        score,
+        status: "Submitted",
+        submittedAt: new Date()
       });
-      return NextResponse.json(
-        { 
-          message: "You have already submitted a review for this paper",
-          details: {
-            reviewId: existingReview._id,
-            submittedAt: existingReview.submittedAt
-          }
-        },
-        { status: 400 }
-      );
+    } else {
+      // Update existing review
+      review.comments = comments;
+      review.recommendation = recommendation;
+      review.score = score;
+      review.status = "Submitted";
+      review.submittedAt = new Date();
     }
 
-    // Map recommendation to status
-    const statusMap = {
-      accept: "Submitted",
-      reject: "Submitted",
-      revise: "Submitted"
-    };
+    await review.save();
 
-    console.log("Creating new review...");
-    const review = await Review.create({
-      paper: paperId,
-      reviewer: session.user.id,
-      comments,
-      recommendation,
-      score,
-      status: statusMap[recommendation],
-      filePath,
-      fileUrl,
-      submittedAt: new Date()
-    });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Review submitted successfully",
+      review: {
+        _id: review._id,
+        paper: review.paper,
+        reviewer: review.reviewer,
+        comments: review.comments,
+        recommendation: review.recommendation,
+        score: review.score,
+        status: review.status,
+        submittedAt: review.submittedAt
+      }
+    }, { status: 200 });
 
-    // Update paper status
-    paper.status = "Under Review";
-    await paper.save();
-
-    // Send email notification
-    await sendReviewSubmissionAlert({
-      paperId: paper._id,
-      paperTitle: paper.title,
-      reviewerName: session.user.name,
-      reviewerEmail: session.user.email,
-      status: review.status
-    });
-
-    return NextResponse.json(
-      {
-        message: "Review submitted successfully",
-        review: {
-          _id: review._id,
-          paper: paper._id,
-          reviewer: session.user.id,
-          comments: review.comments,
-          recommendation: review.recommendation,
-          score: review.score,
-          status: review.status,
-          submittedAt: review.submittedAt
-        }
-      },
-      { status: 201 }
-    );
   } catch (error) {
-    console.error("Error submitting review:", error);
-    return NextResponse.json(
-      { message: "Failed to submit review", error: error.message },
-      { status: 500 }
-    );
+    console.error("Error in submitReview:", error);
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Failed to submit review" 
+    }, { status: 500 });
   }
 } 
