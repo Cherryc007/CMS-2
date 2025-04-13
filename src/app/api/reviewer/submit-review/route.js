@@ -49,6 +49,19 @@ export async function POST(req) {
       );
     }
 
+    // Check if review already exists
+    const existingReview = await Review.findOne({
+      paper: paperId,
+      reviewer: session.user.id
+    });
+
+    if (existingReview) {
+      return NextResponse.json(
+        { message: "You have already submitted a review for this paper" },
+        { status: 400 }
+      );
+    }
+
     // Map recommendation to status
     const statusMap = {
       accept: "Submitted",
