@@ -62,6 +62,47 @@ export default function ReviewApprovalContent() {
     }
   };
 
+  const handleDownload = async (fileType) => {
+    try {
+      let filePath;
+      if (fileType === 'paper') {
+        filePath = review.paper.filePath;
+      } else if (fileType === 'review' && review.filePath) {
+        filePath = review.filePath;
+      } else {
+        throw new Error('File not found');
+      }
+
+      const response = await fetch('/api/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filePath }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.url) {
+        throw new Error(data.message || 'Failed to get download URL');
+      }
+
+      // Open the blob URL in a new tab
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to download file',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
